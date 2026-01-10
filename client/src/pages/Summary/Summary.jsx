@@ -35,57 +35,142 @@ const customStyles = {
 
 const Summary = () => (
   <div className="space-y-8 animate-fade-in-up">
-    {/* Welcome Banner */}
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-700 p-8 text-white shadow-xl shadow-indigo-200">
-      <div className="relative z-10">
-        <h2 className="text-3xl font-bold mb-2">Welcome back, John! 👋</h2>
-        <p className="text-indigo-100 max-w-xl">
-          Here's what's happening with your campaigns today. You have <span className="font-semibold text-white">4 active campaigns</span> requiring attention.
-        </p>
-        <div className="mt-8 flex gap-4">
-          <button className="bg-white text-indigo-600 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-indigo-50 transition-colors shadow-lg shadow-black/5">
-            View Reports
-          </button>
-          <button className="bg-indigo-500/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-indigo-500/40 transition-colors border border-white/10">
-            Manage Settings
-          </button>
-        </div>
-      </div>
-      {/* Decorative Circles */}
-      <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 right-20 -mb-20 w-40 h-40 bg-purple-500/30 rounded-full blur-2xl"></div>
-    </div>
+    {/* ===== WELCOME HEADER ===== */}
+<div
+  className="card mb-6"
+  style={{
+    background: "#fff",
+    borderRadius: "20px",
+    border: "1px solid #e5e7eb",
+    overflow: "hidden",
+  }}
+>
+  {/* outer padding increased */}
+  <div className="border-slate-200 p-8">
+    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
 
-    {/* Metrics Grid */}
+      {/* LEFT */}
+      <div>
+        <div className="flex items-center gap-4 mb-2">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl">
+            ☀️
+          </div>
+
+          {/* 👇 HEADING BIGGER */}
+          <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 leading-tight">
+            Welcome back, John! 👋
+          </h1>
+        </div>
+
+        <p className="text-sm text-slate-500 mb-2">
+          Friday, 9 January 2026
+        </p>
+
+        <p className="text-slate-600 text-base max-w-2xl">
+          Here's what's happening with your campaigns today.
+          You have{" "}
+          <span className="font-semibold text-slate-900">
+            4 active campaigns
+          </span>{" "}
+          requiring attention.
+        </p>
+      </div>
+
+      {/* RIGHT */}
+      <div className="flex flex-col gap-5 min-w-[460px]">
+
+        {/* SMALL STATS */}
+        <div className="flex gap-4">
+          {[
+            { label: "Employees", value: 9, icon: "👥" },
+            { label: "Orders", value: 7, icon: "🛒" },
+            { label: "Customers", value: 0, icon: "👤" },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 border border-slate-200 rounded-2xl px-4 py-3 bg-white w-full"
+            >
+              <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-lg">
+                {item.icon}
+              </div>
+              <div>
+                <p className="text-sm text-slate-500 leading-none">
+                  {item.label}
+                </p>
+                <p className="text-xl font-bold text-slate-900 leading-tight">
+                  {item.value}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* BUTTON */}
+        <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition text-base">
+          📊 View Reports
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+    {/* ===== METRICS GRID (IMAGE STYLE, DATA SAME) ===== */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {[ 
+      {[
         { title: 'Total Messages', value: '12,543', change: '+12.5%', icon: MessageSquare, color: 'blue' },
         { title: 'Active Campaigns', value: '8', change: '+2.4%', icon: Megaphone, color: 'green' },
         { title: 'Templates Created', value: '24', change: '+5.7%', icon: FilePlus, color: 'purple' },
         { title: 'Credits Remaining', value: '2,400', change: '-1.2%', icon: LayoutDashboard, color: 'orange' }
       ].map((stat, i) => (
-        <div key={i} className="bg-white p-6 rounded-2xl shadow-[0_2px_20px_-5px_rgba(0,0,0,0.05)] border border-gray-100 hover:border-indigo-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-          <div className="flex justify-between items-start mb-4">
-            <div className={`p-3.5 rounded-2xl ${
-              stat.color === 'blue' ? 'bg-blue-50 text-blue-600' :
-              stat.color === 'green' ? 'bg-emerald-50 text-emerald-600' :
-              stat.color === 'purple' ? 'bg-purple-50 text-purple-600' :
-              'bg-orange-50 text-orange-600'
-            } group-hover:scale-110 transition-transform duration-300`}>
-              <stat.icon className="w-6 h-6" />
-            </div>
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-              stat.change.startsWith('+') 
-                ? 'text-emerald-600 bg-emerald-50' 
+        <div
+          key={i}
+          className="relative bg-white rounded-2xl border border-slate-200 p-6 overflow-hidden
+                 transition-all duration-300 cursor-pointer
+                 hover:-translate-y-1 hover:shadow-xl hover:border-slate-300"
+        >
+          {/* soft corner glow */}
+          <div
+            className={`absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br
+          ${stat.color === 'blue' ? 'from-blue-100' :
+                stat.color === 'green' ? 'from-emerald-100' :
+                  stat.color === 'purple' ? 'from-purple-100' :
+                    'from-orange-100'
+              } to-transparent`}
+          />
+
+          {/* icon bubble (right) */}
+          <div
+            className={`absolute top-6 right-6 w-14 h-14 rounded-2xl flex items-center justify-center text-white
+          ${stat.color === 'blue' ? 'bg-blue-500' :
+                stat.color === 'green' ? 'bg-emerald-500' :
+                  stat.color === 'purple' ? 'bg-purple-500' :
+                    'bg-orange-500'
+              }`}
+          >
+            <stat.icon className="w-6 h-6" />
+          </div>
+
+          {/* change badge */}
+          <span
+            className={`inline-block mb-3 text-xs font-bold px-2.5 py-1 rounded-full
+          ${stat.change.startsWith('+')
+                ? 'text-emerald-600 bg-emerald-50'
                 : 'text-red-500 bg-red-50'
-            }`}>
-              {stat.change}
-            </span>
-          </div>
-          <div>
-            <h3 className="text-slate-500 text-sm font-medium mb-1">{stat.title}</h3>
-            <p className="text-3xl font-bold text-slate-800 tracking-tight">{stat.value}</p>
-          </div>
+              }`}
+          >
+            {stat.change}
+          </span>
+
+          {/* content */}
+          <p className="text-sm font-medium text-slate-500 mb-1">
+            {stat.title}
+          </p>
+
+          <p className="text-3xl font-bold text-slate-800 tracking-tight">
+            {stat.value}
+          </p>
         </div>
       ))}
     </div>
@@ -99,29 +184,29 @@ const Summary = () => (
             <h3 className="text-xl font-bold text-slate-800">Campaign Performance</h3>
             <p className="text-sm text-slate-500 mt-1">Message delivery stats over the last 7 days</p>
           </div>
-          <Select 
-            options={timeRangeOptions} 
+          <Select
+            options={timeRangeOptions}
             defaultValue={timeRangeOptions[0]}
             styles={customStyles}
             isSearchable={false}
             components={{ IndicatorSeparator: () => null }}
           />
         </div>
-        
+
         {/* CSS-only Bar Chart */}
         <div className="flex-1 min-h-[300px] flex items-end justify-between gap-4 px-2 pb-4">
           {[65, 45, 75, 55, 85, 40, 70].map((height, i) => (
             <div key={i} className="flex-1 flex flex-col justify-end group cursor-pointer">
               <div className="relative w-full rounded-t-xl bg-indigo-50 overflow-hidden" style={{ height: '100%' }}>
-                 <div 
-                   className="absolute bottom-0 w-full bg-gradient-to-t from-indigo-500 to-purple-500 rounded-t-xl transition-all duration-500 group-hover:opacity-90"
-                   style={{ height: `${height}%` }}
-                 >
-                   <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded-lg transition-opacity whitespace-nowrap z-10 mb-2">
-                     {height * 12} msgs
-                     <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
-                   </div>
-                 </div>
+                <div
+                  className="absolute bottom-0 w-full bg-gradient-to-t from-indigo-500 to-purple-500 rounded-t-xl transition-all duration-500 group-hover:opacity-90"
+                  style={{ height: `${height}%` }}
+                >
+                  <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded-lg transition-opacity whitespace-nowrap z-10 mb-2">
+                    {height * 12} msgs
+                    <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                  </div>
+                </div>
               </div>
               <span className="text-xs text-slate-400 text-center mt-3 font-medium">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}
