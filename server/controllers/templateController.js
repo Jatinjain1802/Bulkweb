@@ -1,9 +1,22 @@
 import { TemplateModel } from '../models/templateModel.js';
+import { uploadToMeta } from '../utils/metaUpload.js';
 
 export const createTemplate = async (req, res) => {
   try {
     let { name, category, language, components, content, buttonType, buttons } = req.body;
     
+    // Parse JSON strings if they were sent as form-data strings (common with file uploads)
+    if (typeof components === 'string') {
+        try { components = JSON.parse(components); } catch (e) {}
+    }
+    if (typeof buttons === 'string') {
+        try { buttons = JSON.parse(buttons); } catch (e) {}
+    }
+    // category might be an object stringified
+    if (typeof category === 'string' && category.startsWith('{')) {
+         try { category = JSON.parse(category); } catch (e) {}
+    }
+
     // Transform Frontend Data to Meta Format if 'components' is missing
     let metaComponents = components;
     let metaCategory = category;
@@ -55,10 +68,45 @@ export const createTemplate = async (req, res) => {
       }
     }
 
+    // Handle File Upload for Header
+    if (req.file) {
+        try {
+            const handle = await uploadToMeta(req.file);
+            let headerType = 'IMAGE';
+            if (req.file.mimetype.startsWith('video')) headerType = 'VIDEO';
+            else if (req.file.mimetype === 'application/pdf') headerType = 'DOCUMENT';
+            
+            // Add Header Component
+            // Check if header already exists
+            const existingHeaderIndex = metaComponents.findIndex(c => c.type === 'HEADER');
+            const headerComponent = {
+                type: "HEADER",
+                format: headerType,
+                example: {
+                    header_handle: [handle]
+                }
+            };
+
+            if (existingHeaderIndex !== -1) {
+                metaComponents[existingHeaderIndex] = headerComponent;
+            } else {
+                metaComponents.unshift(headerComponent);
+            }
+        } catch (uploadError) {
+            console.error("Media upload failed:", uploadError);
+            return res.status(500).json({ error: "Failed to upload media to Meta", details: uploadError.message });
+        }
+    }
+    
     // specific category formatting (Meta requires UPPERCASE)
     if (typeof category === 'object' && category?.value) {
         metaCategory = category.value;
     }
+    // handle edge case where category is just the string label from frontend
+    if (typeof category === 'string') {
+       metaCategory = category; 
+    }
+    
     if (metaCategory) {
         metaCategory = metaCategory.toUpperCase();
     }

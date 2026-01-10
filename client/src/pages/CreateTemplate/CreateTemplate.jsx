@@ -36,8 +36,26 @@ const CreateTemplate = () => {
     category: null,
     content: '',
     buttonType: 'none', // none, quick_reply, call_to_action
-    buttons: []
+    buttons: [],
+    headerMedia: null
   });
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+     fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+        const res = await fetch('http://localhost:5000/api/templates');
+        const data = await res.json();
+        setTemplates(data);
+    } catch (error) {
+        console.error("Error fetching templates:", error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -46,6 +64,59 @@ const CreateTemplate = () => {
 
   const handleSelectChange = (selectedOption) => {
     setFormData(prev => ({ ...prev, category: selectedOption }));
+  };
+  
+  const handleFileChange = (e) => {
+      if (e.target.files && e.target.files[0]) {
+          setFormData(prev => ({ ...prev, headerMedia: e.target.files[0] }));
+      }
+  };
+
+  const handleSubmit = async () => {
+      setLoading(true);
+      try {
+          const data = new FormData();
+          data.append('name', formData.name);
+          // Only append category if selected
+          if (formData.category) {
+             data.append('category', JSON.stringify(formData.category));
+          }
+          data.append('content', formData.content);
+          data.append('language', 'en_US'); // Default for now
+          data.append('buttonType', formData.buttonType);
+          data.append('buttons', JSON.stringify(formData.buttons));
+          
+          if (formData.headerMedia) {
+              data.append('headerMedia', formData.headerMedia);
+          }
+
+          const res = await fetch('http://localhost:5000/api/templates', {
+              method: 'POST',
+              body: data
+          });
+          
+          const result = await res.json();
+          if (res.ok) {
+              alert('Template created successfully!');
+              // Reset form
+              setFormData({
+                  name: '',
+                  category: null,
+                  content: '',
+                  buttonType: 'none',
+                  buttons: [],
+                  headerMedia: null
+              });
+              fetchTemplates();
+          } else {
+              alert('Error: ' + (result.error || result.message || 'Failed to create template'));
+          }
+      } catch (error) {
+          console.error("Submission error:", error);
+          alert('Failed to submit template.');
+      } finally {
+          setLoading(false);
+      }
   };
 
   // React Select Options
@@ -95,13 +166,7 @@ const CreateTemplate = () => {
     setFormData(prev => ({ ...prev, buttons: newButtons }));
   };
 
-  // Mock Data for Previous Templates
-  const previousTemplates = [
-    { id: 101, name: 'Diwali Sale Offer', category: 'Marketing', status: 'approved', lastUpdated: '2 hours ago', language: 'En' },
-    { id: 102, name: 'Order Confirmation', category: 'Utility', status: 'approved', lastUpdated: '1 day ago', language: 'En' },
-    { id: 103, name: 'OTP Verification', category: 'Authentication', status: 'pending', lastUpdated: '3 days ago', language: 'En' },
-    { id: 104, name: 'Winter Collection Promo', category: 'Marketing', status: 'rejected', lastUpdated: '1 week ago', language: 'En' }
-  ];
+
 
   const getStatusBadge = (status) => {
       switch(status) {
@@ -124,8 +189,11 @@ const CreateTemplate = () => {
                   <h2 className="text-xl font-bold text-slate-800">Create New Template</h2>
                   <p className="text-slate-500 text-sm mt-1">Design your message templates for WhatsApp campaigns.</p>
                 </div>
-                <button className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
-                  Submit for Review
+                <button 
+                    onClick={handleSubmit} 
+                    disabled={loading}
+                    className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed">
+                  {loading ? 'Submitting...' : 'Submit for Review'}
                 </button>
               </div>
               
@@ -175,11 +243,23 @@ const CreateTemplate = () => {
                 </div>
                 
                 {/* Media Upload */}
-                <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group">
+                <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed border-gray-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group ${formData.headerMedia ? 'border-indigo-300 bg-indigo-50' : ''}`}
+                >
+                  <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      onChange={handleFileChange}
+                      accept="image/*,video/*,application/pdf"
+                  />
                   <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-500 shadow-sm group-hover:scale-110 transition-transform">
-                    <FilePlus className="w-6 h-6" />
+                    {formData.headerMedia ? <CheckCircle className="w-6 h-6 text-green-500" /> : <FilePlus className="w-6 h-6" />}
                   </div>
-                  <p className="text-sm font-medium text-slate-700">Upload Header Media (Optional)</p>
+                  <p className="text-sm font-medium text-slate-700">
+                      {formData.headerMedia ? formData.headerMedia.name : "Upload Header Media (Optional)"}
+                  </p>
                   <p className="text-xs text-slate-400 mt-1">Image, Video, or Document</p>
                 </div>
 
@@ -279,6 +359,17 @@ const CreateTemplate = () => {
                         {/* Message Bubble */}
                         <div className="w-full max-w-[90%] self-start animate-fade-in">
                             <div className={`bg-white p-3 rounded-lg shadow-sm text-sm text-slate-800 leading-relaxed break-words relative ${formData.buttons.length > 0 ? 'rounded-b-none border-b border-dashed border-gray-100' : ''}`}>
+                                {formData.headerMedia && (
+                                     <div className="mb-2 rounded-lg bg-gray-100 h-32 flex items-center justify-center text-slate-400 text-xs border border-gray-200 overflow-hidden">
+                                         {formData.headerMedia.type.startsWith('image') ? (
+                                             <img src={URL.createObjectURL(formData.headerMedia)} alt="Header" className="w-full h-full object-cover" />
+                                         ) : formData.headerMedia.type.startsWith('video') ? (
+                                             <span className="flex items-center gap-1"><FilePlus className="w-4 h-4"/> Video Header</span>
+                                         ) : (
+                                             <span className="flex items-center gap-1"><FilePlus className="w-4 h-4"/> Document Header</span>
+                                         )}
+                                     </div>
+                                )}
                                 {formData.name && (
                                     <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide border-b border-gray-100 pb-1">{formData.name}</p>
                                 )}
@@ -339,38 +430,42 @@ const CreateTemplate = () => {
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                   {previousTemplates.map((template) => (
-                      <tr key={template.id} className="group hover:bg-gray-50/50 transition-colors">
-                         <td className="py-4 px-4 pl-0">
-                            <p className="font-semibold text-slate-700 text-sm">{template.name}</p>
-                            <p className="text-xs text-slate-400">ID: {template.id}</p>
-                         </td>
-                         <td className="py-4 px-4">
-                            <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-slate-600 text-xs font-medium border border-gray-200">
-                               {template.category}
-                            </span>
-                         </td>
-                         <td className="py-4 px-4 text-sm text-slate-600">{template.language}</td>
-                         <td className="py-4 px-4 text-sm text-slate-500">{template.lastUpdated}</td>
-                         <td className="py-4 px-4">
-                             {getStatusBadge(template.status)}
-                         </td>
-                         <td className="py-4 px-4 text-right">
-                             <button className="p-2 hover:bg-gray-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
-                                 <MoreHorizontal className="w-4 h-4" />
-                             </button>
-                         </td>
-                      </tr>
-                   ))}
+                   {templates.length === 0 ? (
+                       <tr><td colSpan="6" className="py-4 text-center text-sm text-slate-500">No templates found.</td></tr>
+                   ) : (
+                       templates.map((template) => (
+                          <tr key={template.id} className="group hover:bg-gray-50/50 transition-colors">
+                             <td className="py-4 px-4 pl-0">
+                                <p className="font-semibold text-slate-700 text-sm">{template.name}</p>
+                                <p className="text-xs text-slate-400">ID: {template.id}</p>
+                             </td>
+                             <td className="py-4 px-4">
+                                <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-slate-600 text-xs font-medium border border-gray-200">
+                                   {template.category}
+                                </span>
+                             </td>
+                             <td className="py-4 px-4 text-sm text-slate-600">{template.language}</td>
+                             <td className="py-4 px-4 text-sm text-slate-500">{new Date(template.created_at).toLocaleDateString()}</td>
+                             <td className="py-4 px-4">
+                                 {getStatusBadge(template.status)}
+                             </td>
+                             <td className="py-4 px-4 text-right">
+                                 <button className="p-2 hover:bg-gray-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
+                                     <MoreHorizontal className="w-4 h-4" />
+                                 </button>
+                             </td>
+                          </tr>
+                       ))
+                   )}
                 </tbody>
              </table>
           </div>
           
           <div className="mt-6 flex items-center justify-between text-sm text-slate-500">
-              <p>Showing 4 of 24 templates</p>
+              <p>Showing {templates.length} templates</p>
               <div className="flex gap-2">
                   <button className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>Previous</button>
-                  <button className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">Next</button>
+                  <button className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>Next</button>
               </div>
           </div>
       </div>
