@@ -1,24 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FilePlus, Megaphone, MessageSquare, LogOut, Users, TrendingUp, Map } from 'lucide-react';
+import { LayoutDashboard, FilePlus, Megaphone, MessageSquare, LogOut, Users, TrendingUp, Map, ChevronDown } from 'lucide-react';
 import VaataLogo from '../../assets/img/Vaata-logo.png';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [openMenu, setOpenMenu] = useState(""); // Track open submenu
+  const [activeItem, setActiveItem] = useState(""); // Track active/highlighted item
 
   // Get user data
   const userData = JSON.parse(localStorage.getItem("data")) || {};
   const userRole = userData.role ? userData.role.toLowerCase().replace(/\s/g, "") : "";
   const accessibleModules = userData.accessible_modules || [];
 
+  // Auto-close submenu when navigating away from its items
+  useEffect(() => {
+    const menuItems = [
+      {
+        label: 'Template Management',
+        submenu: [
+          { path: '/dashboard/create-template' },
+          { path: '/dashboard/template-list' },
+        ],
+      },
+      {
+        label: 'Campaign Management',
+        submenu: [
+          { path: '/dashboard/create-campaign' },
+        ],
+      },
+      {
+        label: 'Chat Management',
+        submenu: [
+          { path: '/dashboard/chat' },
+        ],
+      },
+    ];
+
+    // Find which menu the current path belongs to
+    let currentMenuLabel = "";
+    for (const item of menuItems) {
+      if (item.submenu && item.submenu.some(sub => location.pathname === sub.path)) {
+        currentMenuLabel = item.label;
+        break;
+      }
+    }
+
+    // Update active item and auto-open the correct menu
+    if (currentMenuLabel) {
+      setActiveItem(currentMenuLabel);
+      setOpenMenu(currentMenuLabel);
+    } else if (location.pathname === '/dashboard/summary') {
+      setActiveItem('Summary');
+      setOpenMenu(""); // Close all submenus when on Summary page
+    } else {
+      // Close submenu if not on any known path
+      setOpenMenu("");
+      setActiveItem("");
+    }
+  }, [location.pathname]);
+
   const hasAccess = (moduleName) => {
     if (userRole === "superadmin") return true;
     return accessibleModules.includes(moduleName);
   };
 
-  // Menu configuration
+  // Original menu configuration
   const menuItems = [
     { path: '/dashboard/summary', label: 'Summary', icon: LayoutDashboard, module: 'dashboard' },
     {
@@ -29,87 +77,104 @@ const Sidebar = () => {
         { path: '/dashboard/template-list', label: 'Template List', module: 'template' },
       ],
     },
-    { path: '/dashboard/create-campaign', label: 'Campaign Management', icon: Megaphone, module: 'campaign' },
-    { path: '/dashboard/chat', label: 'Chat UI', icon: MessageSquare, module: 'chat' },
+    {
+      label: 'Campaign Management',
+      icon: Megaphone,
+      module: 'campaign',
+      submenu: [
+        { path: '/dashboard/create-campaign', label: 'Campaign Management', module: 'campaign' },
+      ],
+    },
+    {
+      label: 'Chat Management',
+      icon: MessageSquare,
+      module: 'chat',
+      submenu: [
+        { path: '/dashboard/chat', label: 'Chat UI', module: 'chat' },
+      ],
+    },
   ];
 
   return (
-    <aside className="w-80 bg-gray-900 text-white flex flex-col shadow-xl">
+    <aside className="w-72 min-h-screen text-white flex flex-col" style={{ backgroundColor: '#3d4f5f', fontFamily: "'Instrument Sans', sans-serif", fontSize: '13px' }}>
       {/* Logo */}
-      <div className="p-6 pb-4 border-b border-gray-700/50">
-        <img src={VaataLogo} alt="Vaata Logo" className="h-10 mb-8 w-auto" />
-        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider pl-2">
-          Main Menu
-        </div>
+      <div className="px-5 py-6">
+        <img src={VaataLogo} alt="Vaata Logo" style={{ width: "40%", margin: "-10px" }} />
       </div>
 
-      {/* Menu */}
-      <nav className="flex-1 px-4 space-y-6 overflow-y-auto py-4">
-        {/* Dashboard Section */}
-        <div>
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            if (item.path === '/dashboard/summary' && hasAccess(item.module)) {
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `w-full flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all duration-200 ${
-                      isActive
-                        ? 'bg-orange-500 text-white shadow-md'
-                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                    }`
-                  }
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium text-sm">{item.label}</span>
-                </NavLink>
-              );
-            }
-            return null;
-          })}
-        </div>
+      {/* Dashboard Section */}
+      <div className="px-3">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          if (item.path === '/dashboard/summary' && hasAccess(item.module)) {
+            const isHighlighted = activeItem === 'Summary';
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setActiveItem('Summary')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${isHighlighted
+                  ? 'text-white shadow-md'
+                  : 'text-gray-200 hover:bg-white/10'
+                  }`}
+                style={isHighlighted ? { backgroundColor: '#e87722' } : {}}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium text-sm">{item.label}</span>
+              </NavLink>
+            );
+          }
+          return null;
+        })}
+      </div>
 
-        {/* Employee Management Section */}
-        <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 mb-3">Employee Management</p>
+      {/* Divider */}
+      <div className="mx-4 my-3 border-t border-white-500/40"></div>
+
+      {/* Employee Management Section */}
+      <div>
+        <p className="px-5 py-2 text-xs font-medium text-gray-300  tracking-wide">
+          Template Management
+        </p>
+        <div className="px-3">
           {menuItems.map((item) => {
             const Icon = item.icon;
             if (item.submenu && item.label === 'Template Management' && hasAccess(item.module)) {
-              const anySubActive = item.submenu.some(
-                (sub) => location.pathname === sub.path && hasAccess(sub.module)
-              );
+              const isHighlighted = activeItem === item.label;
+              const isOpen = openMenu === item.label;
+
               return (
                 <div key={item.label}>
                   <button
-                    onClick={() => setOpenMenu(openMenu === item.label ? '' : item.label)}
-                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all duration-200 ${
-                      anySubActive
-                        ? 'bg-orange-500 text-white shadow-md'
-                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                    }`}
+                    onClick={() => {
+                      setActiveItem(item.label);
+                      setOpenMenu(openMenu === item.label ? '' : item.label);
+                    }}
+                    className={`w-full flex gap-3 px-4 py-3 rounded-md transition-all duration-200 ${isHighlighted
+                      ? 'text-white shadow-md'
+                      : 'text-gray-200 hover:bg-white/10'
+                      }`}
+                    style={isHighlighted ? { backgroundColor: '#e87722' } : {}}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium text-sm">{item.label}</span>
-                    <span className="ml-auto text-xs">{openMenu === item.label ? "▲" : "▼"}</span>
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+                        }`}
+                    />
                   </button>
 
-                  {openMenu === item.label && (
-                    <div className="ml-6 flex flex-col space-y-1 mt-1">
+                  {isOpen && (
+                    <div className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3">
                       {item.submenu.map(
                         (sub) =>
                           hasAccess(sub.module) && (
                             <NavLink
                               key={sub.path}
                               to={sub.path}
-                              className={({ isActive }) =>
-                                `px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
-                                  isActive
-                                    ? 'bg-orange-400 text-white'
-                                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                                }`
-                              }
+                              className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
                             >
                               {sub.label}
                             </NavLink>
@@ -123,42 +188,137 @@ const Sidebar = () => {
             return null;
           })}
         </div>
+      </div>
 
-        {/* Campaign & Chat Section */}
-        <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 mb-3">Marketing Management</p>
-          <div className="space-y-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              if ((item.path === '/dashboard/create-campaign' || item.path === '/dashboard/chat') && hasAccess(item.module)) {
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) =>
-                      `w-full flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? 'bg-orange-500 text-white shadow-md'
-                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                      }`
-                    }
+      {/* Divider */}
+      <div className="mx-4 my-3 border-t border-white-500/40"></div>
+
+      {/* Campaign Management Section */}
+      <div>
+        <p className="px-5 py-2 text-xs font-medium text-gray-300  tracking-wide">
+          Campaign Management
+        </p>
+        <div className="px-3">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            if (item.submenu && item.label === 'Campaign Management' && hasAccess(item.module)) {
+              const isHighlighted = activeItem === item.label;
+              const isOpen = openMenu === item.label;
+
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => {
+                      setActiveItem(item.label);
+                      setOpenMenu(openMenu === item.label ? '' : item.label);
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-md transition-all duration-200 ${isHighlighted
+                      ? 'text-white shadow-md'
+                      : 'text-gray-200 hover:bg-white/10'
+                      }`}
+                    style={isHighlighted ? { backgroundColor: '#e87722' } : {}}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium text-sm">{item.label}</span>
-                  </NavLink>
-                );
-              }
-              return null;
-            })}
-          </div>
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+                        }`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3">
+                      {item.submenu.map(
+                        (sub) =>
+                          hasAccess(sub.module) && (
+                            <NavLink
+                              key={sub.path}
+                              to={sub.path}
+                              className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
+                            >
+                              {sub.label}
+                            </NavLink>
+                          )
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          })}
         </div>
-      </nav>
+      </div>
+
+      {/* Divider */}
+      <div className="mx-4 my-3 border-t border-white-500/40"></div>
+
+      {/* Chat Management Section */}
+      <div>
+        <p className="px-5 py-2 text-xs font-medium text-gray-300  tracking-wide">
+          Chat Management
+        </p>
+        <div className="px-3">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            if (item.submenu && item.label === 'Chat Management' && hasAccess(item.module)) {
+              const isHighlighted = activeItem === item.label;
+              const isOpen = openMenu === item.label;
+
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => {
+                      setActiveItem(item.label);
+                      setOpenMenu(openMenu === item.label ? '' : item.label);
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-md transition-all duration-200 ${isHighlighted
+                      ? 'text-white shadow-md'
+                      : 'text-gray-200 hover:bg-white/10'
+                      }`}
+                    style={isHighlighted ? { backgroundColor: '#e87722' } : {}}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+                        }`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3">
+                      {item.submenu.map(
+                        (sub) =>
+                          hasAccess(sub.module) && (
+                            <NavLink
+                              key={sub.path}
+                              to={sub.path}
+                              className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
+                            >
+                              {sub.label}
+                            </NavLink>
+                          )
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
+      </div>
 
       {/* Profile + Logout */}
-      <div className="p-4 mt-auto">
-        <div className="bg-gray-800/50 rounded-2xl p-4 mb-4 backdrop-blur-sm border border-gray-700/50">
+      <div className="p-4 mt-auto border-t border-gray-500/40">
+        <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center text-white font-bold shadow-md">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md" style={{ background: 'linear-gradient(to top right, #e87722, #ef4444)' }}>
               JD
             </div>
             <div className="flex-1 overflow-hidden">
@@ -169,7 +329,7 @@ const Sidebar = () => {
         </div>
         <button
           onClick={() => navigate('/login')}
-          className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all duration-200"
+          className="w-full flex items-center gap-3 px-4 py-3 text-gray-200 hover:text-red-300 hover:bg-red-400/10 rounded-md transition-all duration-200"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium text-sm">Sign Out</span>
