@@ -13,20 +13,20 @@ const customStyles = {
   control: (base, state) => ({
     ...base,
     backgroundColor: '#f9fafb',
-    borderColor: state.isFocused ? '#6366f1' : '#e5e7eb',
+    borderColor: state.isFocused ? '#ff6900' : '#e5e7eb',
     borderRadius: '0.75rem',
     padding: '6px',
-    boxShadow: state.isFocused ? '0 0 0 2px rgba(99, 102, 241, 0.2)' : 'none',
-    '&:hover': { borderColor: '#6366f1' },
+    boxShadow: state.isFocused ? '0 0 0 2px rgba(255, 105, 0, 0.2)' : 'none',
+    '&:hover': { borderColor: '#ff6900' },
     fontSize: '0.875rem'
   }),
   option: (base, state) => ({
     ...base,
-    backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#e0e7ff' : 'white',
+    backgroundColor: state.isSelected ? '#ff6900' : state.isFocused ? '#fff7ed' : 'white',
     color: state.isSelected ? 'white' : '#1f2937',
     cursor: 'pointer',
     ':active': {
-      backgroundColor: '#6366f1'
+      backgroundColor: '#ff6900'
     }
   })
 };
@@ -264,12 +264,6 @@ const CreateTemplate = () => {
                   <h2 className="text-xl font-bold text-slate-800">Create New Template</h2>
                   <p className="text-slate-500 text-sm mt-1">Design your message templates for WhatsApp campaigns.</p>
                 </div>
-                <button 
-                    onClick={handleSubmit} 
-                    disabled={loading}
-                    className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed">
-                  {loading ? 'Submitting...' : 'Submit for Review'}
-                </button>
               </div>
               
               <div className="space-y-6">
@@ -282,7 +276,7 @@ const CreateTemplate = () => {
                       value={formData.name}
                       onChange={handleInputChange}
                       placeholder="e.g. Welcome Message" 
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-600" 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff6900]/20 focus:border-[#ff6900] transition-all font-medium text-slate-600" 
                     />
                   </div>
                   <div className="space-y-2">
@@ -320,13 +314,13 @@ const CreateTemplate = () => {
                               onChange={handleInputChange}
                               placeholder="Enter header text (e.g. Special Offer)"
                               maxLength={60}
-                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-600"
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff6900]/20 focus:border-[#ff6900] transition-all font-medium text-slate-600"
                          />
                      )}
                      {formData.headerType === 'media' && (
                         <div 
                             onClick={() => fileInputRef.current?.click()}
-                            className={`border-2 border-dashed border-gray-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group ${formData.headerMedia ? 'border-indigo-300 bg-indigo-50' : ''}`}
+                            className={`border-2 border-dashed border-gray-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group ${formData.headerMedia ? 'border-[#ff6900] bg-orange-50' : ''}`}
                         >
                         <input 
                             type="file" 
@@ -335,8 +329,8 @@ const CreateTemplate = () => {
                             onChange={handleFileChange}
                             accept="image/*,video/*,application/pdf"
                         />
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-500 shadow-sm group-hover:scale-110 transition-transform">
-                            {formData.headerMedia ? <CheckCircle className="w-6 h-6 text-green-500" /> : <FilePlus className="w-6 h-6" />}
+                        <div className={`w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:scale-110 transition-transform ${formData.headerMedia ? 'text-green-500' : 'text-[#ff6900]'}`}>
+                            {formData.headerMedia ? <CheckCircle className="w-6 h-6" /> : <FilePlus className="w-6 h-6" />}
                         </div>
                         <p className="text-sm font-medium text-slate-700">
                             {formData.headerMedia ? formData.headerMedia.name : "Upload Header Media"}
@@ -355,12 +349,12 @@ const CreateTemplate = () => {
                       value={formData.content}
                       onChange={handleInputChange}
                       placeholder="Type your message here... Use {{1}} for variables." 
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium text-slate-600"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff6900]/20 focus:border-[#ff6900] transition-all resize-none font-medium text-slate-600"
                     ></textarea>
                     <div className="absolute right-3 bottom-3 flex gap-2">
                       <button 
                         onClick={addVariable}
-                        className="p-2 hover:bg-gray-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors" 
+                        className="p-2 hover:bg-gray-200 rounded-lg text-slate-400 hover:text-[#ff6900] transition-colors" 
                         title="Add Variable"
                       >
                         <Plus className="w-4 h-4" />
@@ -375,12 +369,12 @@ const CreateTemplate = () => {
                     
                     if (variables.length > 0) {
                       return (
-                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-3 animate-fade-in">
-                          <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">Variable Examples (Required)</p>
+                        <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 space-y-3 animate-fade-in">
+                          <p className="text-xs font-bold text-[#ff6900] uppercase tracking-wide">Variable Examples (Required)</p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {variables.map(v => (
                               <div key={v} className="flex items-center gap-2">
-                                <span className="text-xs font-mono text-blue-600 bg-white px-2 py-1 rounded border border-blue-200">{`{{${v}}}`}</span>
+                                <span className="text-xs font-mono text-[#ff6900] bg-white px-2 py-1 rounded border border-orange-200">{`{{${v}}}`}</span>
                                 <input 
                                   type="text" 
                                   placeholder={`Example for {{${v}}}`}
@@ -392,12 +386,12 @@ const CreateTemplate = () => {
                                       [v]: e.target.value
                                     }
                                   }))}
-                                  className="flex-1 px-3 py-1.5 rounded-lg border border-blue-200 text-sm focus:outline-none focus:border-blue-500"
+                                  className="flex-1 px-3 py-1.5 rounded-lg border border-orange-200 text-sm focus:outline-none focus:border-[#ff6900]"
                                 />
                               </div>
                             ))}
                           </div>
-                          <p className="text-[10px] text-blue-400">Meta requires real content examples for review.</p>
+                          <p className="text-[10px] text-orange-400">Meta requires real content examples for review.</p>
                         </div>
                       );
                     }
@@ -415,7 +409,7 @@ const CreateTemplate = () => {
                       onChange={handleInputChange}
                       placeholder="Add a short footer text (e.g. Reply STOP to unsubscribe)" 
                       maxLength={60}
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-600 text-sm" 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff6900]/20 focus:border-[#ff6900] transition-all font-medium text-slate-600 text-sm" 
                     />
                 </div>
 
@@ -456,7 +450,7 @@ const CreateTemplate = () => {
                                             placeholder="Button Text"
                                             value={btn.text}
                                             onChange={(e) => handleButtonChange(index, 'text', e.target.value)}
-                                            className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:border-indigo-500"
+                                            className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:border-[#ff6900]"
                                         />
                                         {formData.buttonType === 'call_to_action' && (
                                             <input 
@@ -464,7 +458,7 @@ const CreateTemplate = () => {
                                                 placeholder={btn.type === 'url' ? "https://example.com" : "+1234567890"}
                                                 value={btn.value}
                                                 onChange={(e) => handleButtonChange(index, 'value', e.target.value)}
-                                                className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:border-indigo-500"
+                                                className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:border-[#ff6900]"
                                             />
                                         )}
                                     </div>
@@ -481,7 +475,7 @@ const CreateTemplate = () => {
                               (formData.buttonType === 'call_to_action' && formData.buttons.length < 2)) && (
                                 <button 
                                     onClick={addButton}
-                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 px-2 py-1"
+                                    className="text-sm font-medium text-[#ff6900] hover:text-[#e05d00] flex items-center gap-1.5 px-2 py-1"
                                 >
                                     <Plus className="w-4 h-4" /> Add Another Button
                                 </button>
@@ -489,7 +483,45 @@ const CreateTemplate = () => {
                         </div>
                     )}
                 </div>
+                <button 
+                    onClick={handleSubmit} 
+                    disabled={loading}
+                    className="bg-[#ff6900] text-white px-6 py-2.5 rounded-xl font-medium hover:bg-[#e05d00] transition-colors shadow-lg shadow-orange-200 disabled:opacity-70 disabled:cursor-not-allowed">
+                  {loading ? 'Submitting...' : 'Submit for Review'}
+                </button>
               </div>
+              <div className="mt-8 bg-orange-50 rounded-2xl p-6 border border-orange-100">
+                <h3 className="font-bold text-[#ff6900] flex items-center gap-2 mb-3">
+                    <CheckCircle className="w-5 h-5" /> Meta Approval Rules
+                </h3>
+                <ul className="space-y-2 text-sm text-orange-700">
+                    <li className="flex gap-2 text-justify">
+                        <span className="font-bold">•</span>
+                        <span><b>Variables:</b> Must be sequential (e.g. <code>{`{{1}}`}</code>, <code>{`{{2}}`}</code>).</span>
+                    </li>
+                     <li className="flex gap-2 text-justify">
+                        <span className="font-bold">•</span>
+                        <span><b>Clarity:</b> Message must not be vague. Use specific call-to-actions.</span>
+                    </li>
+                    <li className="flex gap-2 text-justify">
+                        <span className="font-bold">•</span>
+                        <span><b>Format:</b> Check grammar and spelling. Poor quality gets rejected.</span>
+                    </li>
+                    <li className="flex gap-2 text-justify">
+                        <span className="font-bold">•</span>
+                        <span><b>Content:</b> No abusive, threatening, or scam-like content.</span>
+                    </li>
+                    <li className="flex gap-2 text-justify">
+                        <span className="font-bold">•</span>
+                        <span><b>Buttons:</b> URLs should be valid. Phone numbers must include country code.</span>
+                    </li>
+                </ul>
+                <div className="mt-4 pt-4 border-t border-orange-200">
+                    <a href="https://developers.facebook.com/docs/whatsapp/message-templates/guidelines" target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-slate-600 hover:text-[#ff6900] flex items-center gap-1">
+                        Read Official Guidelines <span className="text-xl">→</span>
+                    </a>
+                </div>
+            </div>
            </div>
         </div>
 
@@ -573,7 +605,9 @@ const CreateTemplate = () => {
                     </div>
                 </div>
             </div>
+            
         </div>
+        
       </div>
 
       {/* Bottom Section: Previous Templates */}

@@ -204,6 +204,14 @@ const TemplateList = ({ templates: propTemplates, loading: propLoading, onRefres
                            <span className="px-2 py-1 bg-gray-100 rounded-md text-xs font-mono text-slate-500 uppercase">{selectedTemplate.language}</span>
                            <span className="px-2 py-1 bg-gray-100 rounded-md text-xs font-medium text-slate-500 capitalize">{selectedTemplate.category}</span>
                         </div>
+                        {['rejected', 'failed_meta'].includes(String(selectedTemplate.status).toLowerCase()) && selectedTemplate.rejection_reason && (
+                            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700 animate-fade-in">
+                                <p className="font-bold flex items-center gap-2 mb-1">
+                                    <XCircle className="w-4 h-4" /> Rejection Reason:
+                                </p>
+                                <p>{selectedTemplate.rejection_reason}</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="bg-[#e5ddd5] p-6 rounded-xl border border-gray-200 relative overflow-hidden">

@@ -16,8 +16,11 @@ app.get("/", (req, res) => {
   res.send("API running...");
 });
 
+import campaignRoutes from './routes/campaignRoutes.js';
+
 app.use('/api/auth', authRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/campaigns', campaignRoutes);
 
 
 const PORT = process.env.PORT || 5000;

@@ -2,11 +2,7 @@ import db from '../config/db.js';
 
 export const TemplateModel = {
   create: async (templateData) => {
-    const { name, language, category, structure, status, meta_id } = templateData;
-    const query = `
-      INSERT INTO templates (name, language, category, structure, status, meta_id)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
+    const { name, language, category, structure, status, meta_id, rejection_reason } = templateData;
     
     // safe stringify
     let structureStr;
@@ -16,16 +12,22 @@ export const TemplateModel = {
         structureStr = '[]';
     }
 
+    const query = `
+      INSERT INTO templates (name, language, category, structure, status, meta_id, rejection_reason)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
     const values = [
       name || null, 
       language || null, 
       category || null, 
       structureStr, 
       status || 'local_pending', 
-      meta_id || null
+      meta_id || null,
+      rejection_reason || null
     ];
     
-    console.log("DB Insert Debug:", values); // Debugging line
+    console.log("DB Insert Debug:", values);
 
     const [result] = await db.execute(query, values);
     return result.insertId;
@@ -49,14 +51,22 @@ export const TemplateModel = {
     return rows[0];
   },
 
-  updateStatus: async (id, status, meta_id = null) => {
-    let query = 'UPDATE templates SET status = ? WHERE id = ?';
-    let params = [status, id];
+  updateStatus: async (id, status, meta_id = null, rejection_reason = null) => {
+    let query = 'UPDATE templates SET status = ?';
+    let params = [status];
 
     if (meta_id) {
-      query = 'UPDATE templates SET status = ?, meta_id = ? WHERE id = ?';
-      params = [status, meta_id, id];
+      query += ', meta_id = ?';
+      params.push(meta_id);
     }
+    
+    if (rejection_reason !== undefined) {
+        query += ', rejection_reason = ?';
+        params.push(rejection_reason);
+    }
+
+    query += ' WHERE id = ?';
+    params.push(id);
     
     const [result] = await db.execute(query, params);
     return result.affectedRows > 0;

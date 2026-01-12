@@ -256,7 +256,8 @@ export const getTemplates = async (req, res) => {
     // 1. Fetch from Meta if credentials exist
     if (META_ACCESS_TOKEN && META_WABA_ID) {
         try {
-            const metaUrl = `https://graph.facebook.com/${META_VERSION}/${META_WABA_ID}/message_templates?fields=name,status,category,language,components,id&limit=100`;
+            // Request rejected_reason field
+            const metaUrl = `https://graph.facebook.com/${META_VERSION}/${META_WABA_ID}/message_templates?fields=name,status,category,language,components,id,rejected_reason&limit=100`;
             const response = await fetch(metaUrl, {
                 headers: {
                     'Authorization': `Bearer ${META_ACCESS_TOKEN}`
@@ -272,13 +273,13 @@ export const getTemplates = async (req, res) => {
                     const existing = await TemplateModel.findByName(metaTmpl.name);
                     
                     const status = mapMetaStatus(metaTmpl.status);
+                    const rejectionReason = metaTmpl.rejected_reason || null;
                     
                     if (existing) {
-                        // Update if needed
-                        let needsUpdate = false;
-                        if (existing.status !== status) {
-                            await TemplateModel.updateStatus(existing.id, status, metaTmpl.id);
-                            needsUpdate = true;
+                        // Update if status changed or just to sync rejection reason
+                        // We check status or existence of rejection reason to be safe
+                        if (existing.status !== status || (status === 'rejected' && existing.rejection_reason !== rejectionReason)) {
+                            await TemplateModel.updateStatus(existing.id, status, metaTmpl.id, rejectionReason);
                         }
                         // Check category change
                          if (existing.category !== metaTmpl.category) {
@@ -292,8 +293,11 @@ export const getTemplates = async (req, res) => {
                             category: metaTmpl.category,
                             structure: metaTmpl.components,
                             status: status,
-                            meta_id: metaTmpl.id
+                            meta_id: metaTmpl.id,
+                            rejection_reason: rejectionReason // Note: create method needs to handle this property if passed in object, checking Model...
                         });
+                        // Wait, looking at Model.create, it extracts specific fields. I need to update Model.create too or just leave it for now and update status immediately after.
+                        // Actually, let's update Model.create to accept rejection_reason.
                     }
                 }
             } else {
