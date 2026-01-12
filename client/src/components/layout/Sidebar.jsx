@@ -78,14 +78,6 @@ const Sidebar = () => {
       ],
     },
     {
-      label: 'Campaign Management',
-      icon: Megaphone,
-      module: 'campaign',
-      submenu: [
-        { path: '/dashboard/create-campaign', label: 'Campaign Management', module: 'campaign' },
-      ],
-    },
-    {
       label: 'Chat Management',
       icon: MessageSquare,
       module: 'chat',
@@ -93,6 +85,15 @@ const Sidebar = () => {
         { path: '/dashboard/chat', label: 'Chat UI', module: 'chat' },
       ],
     },
+    {
+      label: 'Campaign Management',
+      icon: Megaphone,
+      module: 'campaign',
+      submenu: [
+        { path: '/dashboard/create-campaign', label: 'Campaign Management', module: 'campaign' },
+      ],
+    },
+
   ];
 
   return (
@@ -126,6 +127,67 @@ const Sidebar = () => {
           }
           return null;
         })}
+      </div>
+
+      {/* Divider */}
+      <div className="mx-4 my-3 border-t border-white-500/40"></div>
+      {/* Campaign Management Section */}
+      <div>
+        <p className="px-5 py-2 text-xs font-medium text-gray-300  tracking-wide">
+          Campaign Management
+        </p>
+        <div className="px-3">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            if (item.submenu && item.label === 'Campaign Management' && hasAccess(item.module)) {
+              const isHighlighted = activeItem === item.label;
+              const isOpen = openMenu === item.label;
+
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => {
+                      setActiveItem(item.label);
+                      setOpenMenu(openMenu === item.label ? '' : item.label);
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-md transition-all duration-200 ${isHighlighted
+                      ? 'text-white shadow-md'
+                      : 'text-gray-200 hover:bg-white/10'
+                      }`}
+                    style={isHighlighted ? { backgroundColor: '#e87722' } : {}}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+                        }`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3">
+                      {item.submenu.map(
+                        (sub) =>
+                          hasAccess(sub.module) && (
+                            <NavLink
+                              key={sub.path}
+                              to={sub.path}
+                              className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
+                            >
+                              {sub.label}
+                            </NavLink>
+                          )
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
       </div>
 
       {/* Divider */}
@@ -193,67 +255,6 @@ const Sidebar = () => {
       {/* Divider */}
       <div className="mx-4 my-3 border-t border-white-500/40"></div>
 
-      {/* Campaign Management Section */}
-      <div>
-        <p className="px-5 py-2 text-xs font-medium text-gray-300  tracking-wide">
-          Campaign Management
-        </p>
-        <div className="px-3">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            if (item.submenu && item.label === 'Campaign Management' && hasAccess(item.module)) {
-              const isHighlighted = activeItem === item.label;
-              const isOpen = openMenu === item.label;
-
-              return (
-                <div key={item.label}>
-                  <button
-                    onClick={() => {
-                      setActiveItem(item.label);
-                      setOpenMenu(openMenu === item.label ? '' : item.label);
-                    }}
-                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-md transition-all duration-200 ${isHighlighted
-                      ? 'text-white shadow-md'
-                      : 'text-gray-200 hover:bg-white/10'
-                      }`}
-                    style={isHighlighted ? { backgroundColor: '#e87722' } : {}}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5" />
-                      <span className="font-medium text-sm">{item.label}</span>
-                    </div>
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
-                        }`}
-                    />
-                  </button>
-
-                  {isOpen && (
-                    <div className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3">
-                      {item.submenu.map(
-                        (sub) =>
-                          hasAccess(sub.module) && (
-                            <NavLink
-                              key={sub.path}
-                              to={sub.path}
-                              className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
-                            >
-                              {sub.label}
-                            </NavLink>
-                          )
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            return null;
-          })}
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="mx-4 my-3 border-t border-white-500/40"></div>
 
       {/* Chat Management Section */}
       <div>
