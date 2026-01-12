@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import Select from 'react-select';
 import { Plus, FilePlus, CheckCircle, Clock, XCircle, MoreHorizontal, Search, MessageCircle } from 'lucide-react';
+import TemplateList from './TemplateList';
 
 const categoryOptions = [
-  { value: 'marketing', label: 'Marketing' },
-  { value: 'utility', label: 'Utility' },
-  { value: 'authentication', label: 'Authentication' }
+  { value: 'MARKETING', label: 'Marketing' },
+  { value: 'UTILITY', label: 'Utility' },
+  { value: 'AUTHENTICATION', label: 'Authentication' }
 ];
 
 const customStyles = {
@@ -35,10 +36,15 @@ const CreateTemplate = () => {
     name: '',
     category: null,
     content: '',
+    headerType: 'none', // none, text, media
+    headerText: '',
+    headerMedia: null,
+    footerText: '',
     buttonType: 'none', // none, quick_reply, call_to_action
     buttons: [],
-    headerMedia: null
+    variableExamples: {}
   });
+
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = React.useRef(null);
@@ -46,6 +52,11 @@ const CreateTemplate = () => {
   React.useEffect(() => {
      fetchTemplates();
   }, []);
+
+  const extractVariables = (text) => {
+    const matches = text?.match(/{{\d+}}/g) || [];
+    return [...new Set(matches.map(m => m.match(/\d+/)[0]))].sort((a, b) => a - b);
+  };
 
   const fetchTemplates = async () => {
     try {
@@ -75,6 +86,33 @@ const CreateTemplate = () => {
   const handleSubmit = async () => {
       setLoading(true);
       try {
+          // Basic Validation
+          if (!formData.name.trim()) {
+              alert('Please enter a Template Name');
+              setLoading(false);
+              return;
+          }
+          if (!formData.category) {
+              alert('Please select a Category');
+              setLoading(false);
+              return;
+          }
+          if (!formData.content.trim()) {
+              alert('Please enter Message Content');
+              setLoading(false);
+              return;
+          }
+
+          // Validation: Check if all variables have examples
+          const foundVars = extractVariables(formData.content);
+          const missingExamples = foundVars.filter(v => !formData.variableExamples[v]);
+          
+          if (foundVars.length > 0 && missingExamples.length > 0) {
+             alert(`Please provide examples for variables: ${missingExamples.map(v => `{{${v}}}`).join(', ')}`);
+             setLoading(false);
+             return;
+          }
+
           const data = new FormData();
           data.append('name', formData.name);
           // Only append category if selected
@@ -83,10 +121,17 @@ const CreateTemplate = () => {
           }
           data.append('content', formData.content);
           data.append('language', 'en_US'); // Default for now
+          
+          // Header & Footer
+          data.append('headerType', formData.headerType);
+          if (formData.headerType === 'text') data.append('headerText', formData.headerText);
+          data.append('footerText', formData.footerText);
+
           data.append('buttonType', formData.buttonType);
           data.append('buttons', JSON.stringify(formData.buttons));
+          data.append('variableExamples', JSON.stringify(formData.variableExamples));
           
-          if (formData.headerMedia) {
+          if (formData.headerMedia && formData.headerType === 'media') {
               data.append('headerMedia', formData.headerMedia);
           }
 
@@ -103,9 +148,13 @@ const CreateTemplate = () => {
                   name: '',
                   category: null,
                   content: '',
+                  headerType: 'none',
+                  headerText: '',
+                  headerMedia: null,
+                  footerText: '',
                   buttonType: 'none',
                   buttons: [],
-                  headerMedia: null
+                  variableExamples: {}
               });
               fetchTemplates();
           } else {
@@ -120,6 +169,12 @@ const CreateTemplate = () => {
   };
 
   // React Select Options
+  const headerTypeOptions = [
+    { value: 'none', label: 'None' },
+    { value: 'text', label: 'Text' },
+    { value: 'media', label: 'Image/Video/Doc' }
+  ];
+
   const actionTypeOptions = [
     { value: 'none', label: 'None' },
     { value: 'quick_reply', label: 'Quick Reply' },
@@ -169,12 +224,32 @@ const CreateTemplate = () => {
 
 
   const getStatusBadge = (status) => {
-      switch(status) {
+      switch(String(status).toLowerCase()) {
           case 'approved': return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-600"><CheckCircle className="w-3.5 h-3.5" /> Approved</span>;
-          case 'pending': return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-600"><Clock className="w-3.5 h-3.5" /> Pending</span>;
-          case 'rejected': return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600"><XCircle className="w-3.5 h-3.5" /> Rejected</span>;
-          default: return null;
+          case 'pending': 
+          case 'submitted':
+          case 'local_pending':
+             return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-600"><Clock className="w-3.5 h-3.5" /> Pending</span>;
+          case 'rejected': 
+          case 'failed_meta':
+             return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600"><XCircle className="w-3.5 h-3.5" /> Rejected</span>;
+          default: return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{status}</span>;
       }
+  };
+
+  const addVariable = () => {
+    const currentContent = formData.content || '';
+    // Find all {{number}} patterns
+    const matches = currentContent.match(/{{\d+}}/g) || [];
+    // Extract numbers, map to integers
+    const numbers = matches.map(m => parseInt(m.match(/\d+/)[0]));
+    // Find max, default to 0
+    const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+    
+    setFormData(prev => ({
+        ...prev,
+        content: prev.content + ` {{${nextNum}}} `
+    }));
   };
 
   return (
@@ -221,6 +296,55 @@ const CreateTemplate = () => {
                     />
                   </div>
                 </div>
+
+                {/* Header Section */}
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                     <div className="flex items-center justify-between">
+                         <label className="text-sm font-semibold text-slate-700">Header <span className="text-slate-400 font-normal">(Optional)</span></label>
+                         <div className="w-48">
+                             <Select 
+                                 options={headerTypeOptions}
+                                 styles={customStyles}
+                                 onChange={(opt) => setFormData(prev => ({ ...prev, headerType: opt.value }))}
+                                 placeholder="Select Header..."
+                                 defaultValue={headerTypeOptions[0]}
+                                 isSearchable={false}
+                             />
+                         </div>
+                     </div>
+                     {formData.headerType === 'text' && (
+                         <input 
+                              type="text"
+                              name="headerText"
+                              value={formData.headerText}
+                              onChange={handleInputChange}
+                              placeholder="Enter header text (e.g. Special Offer)"
+                              maxLength={60}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-600"
+                         />
+                     )}
+                     {formData.headerType === 'media' && (
+                        <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`border-2 border-dashed border-gray-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group ${formData.headerMedia ? 'border-indigo-300 bg-indigo-50' : ''}`}
+                        >
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            className="hidden" 
+                            onChange={handleFileChange}
+                            accept="image/*,video/*,application/pdf"
+                        />
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-500 shadow-sm group-hover:scale-110 transition-transform">
+                            {formData.headerMedia ? <CheckCircle className="w-6 h-6 text-green-500" /> : <FilePlus className="w-6 h-6" />}
+                        </div>
+                        <p className="text-sm font-medium text-slate-700">
+                            {formData.headerMedia ? formData.headerMedia.name : "Upload Header Media"}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">Image, Video, or Document</p>
+                        </div>
+                     )}
+                </div>
           
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">Message Content</label>
@@ -234,33 +358,65 @@ const CreateTemplate = () => {
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium text-slate-600"
                     ></textarea>
                     <div className="absolute right-3 bottom-3 flex gap-2">
-                      <button className="p-2 hover:bg-gray-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors" title="Add Variable">
+                      <button 
+                        onClick={addVariable}
+                        className="p-2 hover:bg-gray-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors" 
+                        title="Add Variable"
+                      >
                         <Plus className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                   <p className="text-xs text-slate-400">Tips: Keep it concise and use variables for personalization.</p>
+
+                  {/* Variable Examples Section */}
+                  {(() => {
+                    const variables = extractVariables(formData.content);
+                    
+                    if (variables.length > 0) {
+                      return (
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-3 animate-fade-in">
+                          <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">Variable Examples (Required)</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {variables.map(v => (
+                              <div key={v} className="flex items-center gap-2">
+                                <span className="text-xs font-mono text-blue-600 bg-white px-2 py-1 rounded border border-blue-200">{`{{${v}}}`}</span>
+                                <input 
+                                  type="text" 
+                                  placeholder={`Example for {{${v}}}`}
+                                  value={formData.variableExamples?.[v] || ''}
+                                  onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    variableExamples: {
+                                      ...prev.variableExamples,
+                                      [v]: e.target.value
+                                    }
+                                  }))}
+                                  className="flex-1 px-3 py-1.5 rounded-lg border border-blue-200 text-sm focus:outline-none focus:border-blue-500"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-blue-400">Meta requires real content examples for review.</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
                 
-                {/* Media Upload */}
-                <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed border-gray-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group ${formData.headerMedia ? 'border-indigo-300 bg-indigo-50' : ''}`}
-                >
-                  <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      onChange={handleFileChange}
-                      accept="image/*,video/*,application/pdf"
-                  />
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-500 shadow-sm group-hover:scale-110 transition-transform">
-                    {formData.headerMedia ? <CheckCircle className="w-6 h-6 text-green-500" /> : <FilePlus className="w-6 h-6" />}
-                  </div>
-                  <p className="text-sm font-medium text-slate-700">
-                      {formData.headerMedia ? formData.headerMedia.name : "Upload Header Media (Optional)"}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">Image, Video, or Document</p>
+                {/* Footer Section */}
+                <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700">Footer <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <input 
+                      type="text" 
+                      name="footerText"
+                      value={formData.footerText}
+                      onChange={handleInputChange}
+                      placeholder="Add a short footer text (e.g. Reply STOP to unsubscribe)" 
+                      maxLength={60}
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-600 text-sm" 
+                    />
                 </div>
 
                 {/* Interactive Actions (Buttons) */}
@@ -359,7 +515,12 @@ const CreateTemplate = () => {
                         {/* Message Bubble */}
                         <div className="w-full max-w-[90%] self-start animate-fade-in">
                             <div className={`bg-white p-3 rounded-lg shadow-sm text-sm text-slate-800 leading-relaxed break-words relative ${formData.buttons.length > 0 ? 'rounded-b-none border-b border-dashed border-gray-100' : ''}`}>
-                                {formData.headerMedia && (
+                                
+                                {/* Header Preview */}
+                                {formData.headerType === 'text' && formData.headerText && (
+                                     <p className="text-sm font-bold text-slate-800 mb-2">{formData.headerText}</p>
+                                )}
+                                {formData.headerType === 'media' && formData.headerMedia && (
                                      <div className="mb-2 rounded-lg bg-gray-100 h-32 flex items-center justify-center text-slate-400 text-xs border border-gray-200 overflow-hidden">
                                          {formData.headerMedia.type.startsWith('image') ? (
                                              <img src={URL.createObjectURL(formData.headerMedia)} alt="Header" className="w-full h-full object-cover" />
@@ -370,14 +531,22 @@ const CreateTemplate = () => {
                                          )}
                                      </div>
                                 )}
+
                                 {formData.name && (
-                                    <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide border-b border-gray-100 pb-1">{formData.name}</p>
+                                    <p className="hidden">{formData.name}</p> // Hidden metadata just for logical consistency if needed, visual is header
                                 )}
+                                
                                 {formData.content ? (
                                     <p className="whitespace-pre-wrap">{formData.content}</p>
                                 ) : (
                                     <p className="text-slate-400 italic">Your message content will appear here...</p>
                                 )}
+                                
+                                {/* Footer Preview */}
+                                {formData.footerText && (
+                                    <p className="text-[11px] text-slate-400 mt-2 pt-1">{formData.footerText}</p>
+                                )}
+
                                 <div className="text-[10px] text-slate-400 text-right mt-1 flex justify-end items-center gap-1">
                                     12:00 PM <span className="text-blue-500">✓✓</span>
                                 </div>
@@ -408,67 +577,12 @@ const CreateTemplate = () => {
       </div>
 
       {/* Bottom Section: Previous Templates */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <div className="flex items-center justify-between mb-6">
-             <h3 className="text-lg font-bold text-slate-800">Your Templates</h3>
-             <div className="relative">
-                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                 <input type="text" placeholder="Search templates..." className="pl-9 pr-4 py-2 bg-gray-50 rounded-lg text-sm border-none focus:ring-1 focus:ring-indigo-500 transition-all outline-none" />
-             </div>
-          </div>
-
-          <div className="overflow-x-auto">
-             <table className="w-full text-left border-collapse">
-                <thead>
-                   <tr className="border-b border-gray-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      <th className="py-4 px-4 pl-0">Template Name</th>
-                      <th className="py-4 px-4">Category</th>
-                      <th className="py-4 px-4">Language</th>
-                      <th className="py-4 px-4">Last Updated</th>
-                      <th className="py-4 px-4">Status</th>
-                      <th className="py-4 px-4 text-right">Actions</th>
-                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                   {templates.length === 0 ? (
-                       <tr><td colSpan="6" className="py-4 text-center text-sm text-slate-500">No templates found.</td></tr>
-                   ) : (
-                       templates.map((template) => (
-                          <tr key={template.id} className="group hover:bg-gray-50/50 transition-colors">
-                             <td className="py-4 px-4 pl-0">
-                                <p className="font-semibold text-slate-700 text-sm">{template.name}</p>
-                                <p className="text-xs text-slate-400">ID: {template.id}</p>
-                             </td>
-                             <td className="py-4 px-4">
-                                <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-slate-600 text-xs font-medium border border-gray-200">
-                                   {template.category}
-                                </span>
-                             </td>
-                             <td className="py-4 px-4 text-sm text-slate-600">{template.language}</td>
-                             <td className="py-4 px-4 text-sm text-slate-500">{new Date(template.created_at).toLocaleDateString()}</td>
-                             <td className="py-4 px-4">
-                                 {getStatusBadge(template.status)}
-                             </td>
-                             <td className="py-4 px-4 text-right">
-                                 <button className="p-2 hover:bg-gray-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
-                                     <MoreHorizontal className="w-4 h-4" />
-                                 </button>
-                             </td>
-                          </tr>
-                       ))
-                   )}
-                </tbody>
-             </table>
-          </div>
-          
-          <div className="mt-6 flex items-center justify-between text-sm text-slate-500">
-              <p>Showing {templates.length} templates</p>
-              <div className="flex gap-2">
-                  <button className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>Previous</button>
-                  <button className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>Next</button>
-              </div>
-          </div>
-      </div>
+      {/* Bottom Section: Previous Templates */}
+      <TemplateList 
+        templates={templates} 
+        onRefresh={fetchTemplates} 
+        loading={loading} // You might want to track a separate loading state for fetching vs submitting if needed, but reusing state or adding a prop is fine.
+      />
     </div>
   );
 };

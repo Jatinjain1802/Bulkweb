@@ -10,6 +10,7 @@ const Header = () => {
         switch(path) {
             case 'summary': return 'Summary';
             case 'create-template': return 'Template Managment';
+            case 'template-list': return 'Template Managment';
             case 'create-campaign': return 'Campaign Managment';
             case 'chat': return 'Chat UI';
             default: return 'Dashboard';

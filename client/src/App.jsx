@@ -6,6 +6,7 @@ import Summary from './pages/Summary/Summary';
 import CreateTemplate from './pages/CreateTemplate/CreateTemplate';
 import CreateCampaign from './pages/CreateCampaign/CreateCampaign';
 import Chat from './pages/Chat/Chat';
+import TemplateList from './pages/CreateTemplate/TemplateList';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route index element={<Navigate to="summary" replace />} />
           <Route path="summary" element={<Summary />} />
           <Route path="create-template" element={<CreateTemplate />} />
+          <Route path="template-list" element={<TemplateList />} />
           <Route path="create-campaign" element={<CreateCampaign />} />
           <Route path="chat" element={<Chat />} />
         </Route>

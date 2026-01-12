@@ -7,14 +7,27 @@ export const TemplateModel = {
       INSERT INTO templates (name, language, category, structure, status, meta_id)
       VALUES (?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await db.execute(query, [
-      name, 
-      language, 
-      category, 
-      JSON.stringify(structure), 
-      status || 'local', 
+    
+    // safe stringify
+    let structureStr;
+    try {
+        structureStr = (typeof structure === 'object') ? JSON.stringify(structure) : String(structure || '[]');
+    } catch (e) {
+        structureStr = '[]';
+    }
+
+    const values = [
+      name || null, 
+      language || null, 
+      category || null, 
+      structureStr, 
+      status || 'local_pending', 
       meta_id || null
-    ]);
+    ];
+    
+    console.log("DB Insert Debug:", values); // Debugging line
+
+    const [result] = await db.execute(query, values);
     return result.insertId;
   },
 
@@ -30,6 +43,12 @@ export const TemplateModel = {
     return rows[0];
   },
 
+  findByName: async (name) => {
+    const query = 'SELECT * FROM templates WHERE name = ?';
+    const [rows] = await db.execute(query, [name]);
+    return rows[0];
+  },
+
   updateStatus: async (id, status, meta_id = null) => {
     let query = 'UPDATE templates SET status = ? WHERE id = ?';
     let params = [status, id];
@@ -40,6 +59,18 @@ export const TemplateModel = {
     }
     
     const [result] = await db.execute(query, params);
+    return result.affectedRows > 0;
+  },
+
+  updateCategory: async (id, category) => {
+    const query = 'UPDATE templates SET category = ? WHERE id = ?';
+    const [result] = await db.execute(query, [category, id]);
+    return result.affectedRows > 0;
+  },
+
+  delete: async (id) => {
+    const query = 'DELETE FROM templates WHERE id = ?';
+    const [result] = await db.execute(query, [id]);
     return result.affectedRows > 0;
   }
 };

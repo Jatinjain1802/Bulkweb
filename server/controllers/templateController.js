@@ -1,9 +1,39 @@
 import { TemplateModel } from '../models/templateModel.js';
 import { uploadToMeta } from '../utils/metaUpload.js';
 
+// Helper to generate examples for variables (Required by Meta)
+const generateBodyDetails = (text, examplesMap = {}) => {
+    const variableRegex = /{{(\d+)}}/g;
+    const matches = [...text.matchAll(variableRegex)];
+    
+    let bodyComponent = {
+        type: "BODY",
+        text: text
+    };
+
+    if (matches.length > 0) {
+        // Meta requires an array of strings in the order of variables associated
+        // e.g. text: "Hi {{1}}, thanks for {{2}}" -> body_text: [["John", "Ordering"]]
+        const exampleValues = matches.map(m => {
+            const varNum = m[1]; // "1" from "{{1}}"
+            return examplesMap[varNum] || `sample_${varNum}`;
+        });
+        
+        bodyComponent.example = {
+            body_text: [exampleValues]
+        };
+    }
+    return bodyComponent;
+};
+
 export const createTemplate = async (req, res) => {
   try {
-    let { name, category, language, components, content, buttonType, buttons } = req.body;
+    let { name, category, language, components, content, buttonType, buttons, variableExamples } = req.body;
+
+    // Sanitize name for Meta (lowercase, underscores only)
+    if (name) {
+        name = name.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_');
+    }
     
     // Parse JSON strings if they were sent as form-data strings (common with file uploads)
     if (typeof components === 'string') {
@@ -16,6 +46,18 @@ export const createTemplate = async (req, res) => {
     if (typeof category === 'string' && category.startsWith('{')) {
          try { category = JSON.parse(category); } catch (e) {}
     }
+    
+    // Ensure category is a string (take .value if it's an object from react-select)
+    if (category && typeof category === 'object' && category.value) {
+        category = category.value;
+    }
+    
+    let parsedVariableExamples = {};
+    if (typeof variableExamples === 'string') {
+        try { parsedVariableExamples = JSON.parse(variableExamples); } catch (e) {}
+    } else if (typeof variableExamples === 'object') {
+        parsedVariableExamples = variableExamples || {};
+    }
 
     // Transform Frontend Data to Meta Format if 'components' is missing
     let metaComponents = components;
@@ -24,12 +66,27 @@ export const createTemplate = async (req, res) => {
     if (!metaComponents && content) {
       metaComponents = [];
       
+      // 0. Header (Text) - Media handled below
+      if (req.body.headerType === 'text' && req.body.headerText) {
+          metaComponents.push({
+              type: "HEADER",
+              format: "TEXT",
+              text: req.body.headerText
+          });
+      }
+
       // 1. Body
+      // Use the helper immediately to ensure examples are included
       if (content) {
-        metaComponents.push({
-          type: "BODY",
-          text: content
-        });
+        metaComponents.push(generateBodyDetails(content, parsedVariableExamples));
+      }
+      
+      // 1.5 Footer
+      if (req.body.footerText) {
+          metaComponents.push({
+              type: "FOOTER",
+              text: req.body.footerText
+          });
       }
 
       // 2. Buttons
@@ -66,10 +123,19 @@ export const createTemplate = async (req, res) => {
           });
         }
       }
+    } else if (metaComponents) {
+         // If metaComponents were passed directly, ensure 'example' exists if variables are present
+         const bodyComp = metaComponents.find(c => c.type === 'BODY');
+         if (bodyComp && bodyComp.text && !bodyComp.example) {
+             const refined = generateBodyDetails(bodyComp.text, parsedVariableExamples);
+             if (refined.example) {
+                 bodyComp.example = refined.example;
+             }
+         }
     }
 
-    // Handle File Upload for Header
-    if (req.file) {
+    // Handle File Upload for Header (IMAGE/VIDEO/DOC)
+    if (req.file && req.body.headerType === 'media') {
         try {
             const handle = await uploadToMeta(req.file);
             let headerType = 'IMAGE';
@@ -97,23 +163,22 @@ export const createTemplate = async (req, res) => {
             return res.status(500).json({ error: "Failed to upload media to Meta", details: uploadError.message });
         }
     }
-    
-    // specific category formatting (Meta requires UPPERCASE)
-    if (typeof category === 'object' && category?.value) {
-        metaCategory = category.value;
-    }
-    // handle edge case where category is just the string label from frontend
-    if (typeof category === 'string') {
-       metaCategory = category; 
-    }
-    
-    if (metaCategory) {
-        metaCategory = metaCategory.toUpperCase();
-    }
+
+
+
+    // Debugging: Log incoming body
+    console.log("Create Template Request Body:", JSON.stringify(req.body, null, 2));
 
     // Validation
-    if (!name || !metaCategory || !language || !metaComponents) {
-      return res.status(400).json({ error: "Missing required fields: name, category, language, components (or content)" });
+    const errors = [];
+    if (!name) errors.push("name");
+    if (!metaCategory) errors.push("category");
+    if (!language) errors.push("language");
+    if (!metaComponents || metaComponents.length === 0) errors.push("components/content");
+
+    if (errors.length > 0) {
+      console.error("Validation failed. Missing fields:", errors);
+      return res.status(400).json({ error: `Missing required fields: ${errors.join(', ')}` });
     }
 
     // 1. Save to local DB first (status: local_pending)
@@ -137,50 +202,6 @@ export const createTemplate = async (req, res) => {
     }
 
     const metaUrl = `https://graph.facebook.com/${META_VERSION}/${META_WABA_ID}/message_templates`;
-    
-    // Helper to generate examples for variables (Required by Meta)
-    const generateBodyDetails = (text) => {
-        const variableRegex = /{{(\d+)}}/g;
-        const matches = [...text.matchAll(variableRegex)];
-        
-        let bodyComponent = {
-            type: "BODY",
-            text: text
-        };
-
-        if (matches.length > 0) {
-            // Create dummy examples for each variable found
-            // Meta requires an array of arrays: [["Example 1", "Example 2"]]
-            const examples = matches.map((_, index) => `sample_${index + 1}`);
-            bodyComponent.example = {
-                body_text: [examples]
-            };
-        }
-        return bodyComponent;
-    };
-
-    // Refine the manual construction if needed
-    if (!components && content) {
-        // We already pushed a simple BODY in the previous block, let's replace it with the smarter one
-        // Find if we already added a BODY
-        const bodyIndex = metaComponents.findIndex(c => c.type === 'BODY');
-        if (bodyIndex !== -1) {
-             metaComponents[bodyIndex] = generateBodyDetails(content);
-        } else {
-             // Should verify the previous logic didn't fail to add it
-             metaComponents.unshift(generateBodyDetails(content));
-        }
-    } else if (metaComponents) {
-        // If metaComponents were passed directly, we should still ensure 'example' exists if variables are present
-        // This is a safety/convenience step for the user
-        const bodyComp = metaComponents.find(c => c.type === 'BODY');
-        if (bodyComp && bodyComp.text && !bodyComp.example) {
-            const refined = generateBodyDetails(bodyComp.text);
-            if (refined.example) {
-                bodyComp.example = refined.example;
-            }
-        }
-    }
 
     const metaPayload = {
       name,
@@ -218,12 +239,122 @@ export const createTemplate = async (req, res) => {
   }
 };
 
+// Helper to map Meta status to our DB status
+const mapMetaStatus = (metaStatus) => {
+  switch (metaStatus) {
+    case 'APPROVED': return 'approved';
+    case 'REJECTED': return 'rejected';
+    case 'PENDING': return 'pending';
+    default: return metaStatus.toLowerCase(); // fallback
+  }
+};
+
 export const getTemplates = async (req, res) => {
   try {
+    const { META_ACCESS_TOKEN, META_WABA_ID, META_VERSION = 'v18.0' } = process.env;
+
+    // 1. Fetch from Meta if credentials exist
+    if (META_ACCESS_TOKEN && META_WABA_ID) {
+        try {
+            const metaUrl = `https://graph.facebook.com/${META_VERSION}/${META_WABA_ID}/message_templates?fields=name,status,category,language,components,id&limit=100`;
+            const response = await fetch(metaUrl, {
+                headers: {
+                    'Authorization': `Bearer ${META_ACCESS_TOKEN}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const metaTemplates = data.data || [];
+
+                // 2. Sync Meta templates to Local DB
+                for (const metaTmpl of metaTemplates) {
+                    const existing = await TemplateModel.findByName(metaTmpl.name);
+                    
+                    const status = mapMetaStatus(metaTmpl.status);
+                    
+                    if (existing) {
+                        // Update if needed
+                        let needsUpdate = false;
+                        if (existing.status !== status) {
+                            await TemplateModel.updateStatus(existing.id, status, metaTmpl.id);
+                            needsUpdate = true;
+                        }
+                        // Check category change
+                         if (existing.category !== metaTmpl.category) {
+                             await TemplateModel.updateCategory(existing.id, metaTmpl.category);
+                         }
+                    } else {
+                        // Insert new template found in Meta (e.g. pre-verified ones)
+                        await TemplateModel.create({
+                            name: metaTmpl.name,
+                            language: metaTmpl.language,
+                            category: metaTmpl.category,
+                            structure: metaTmpl.components,
+                            status: status,
+                            meta_id: metaTmpl.id
+                        });
+                    }
+                }
+            } else {
+                console.error("Failed to fetch templates from Meta", await response.json());
+            }
+        } catch (metaError) {
+            console.error("Error syncing with Meta:", metaError);
+        }
+    }
+
+    // 3. Return all from Local DB (now synced)
     const templates = await TemplateModel.findAll();
     res.json(templates);
   } catch (error) {
     console.error("Error fetching templates:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const deleteTemplate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const template = await TemplateModel.findById(id);
+
+    if (!template) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+
+    // Try to delete from Meta
+    const { META_ACCESS_TOKEN, META_WABA_ID, META_VERSION = 'v18.0' } = process.env;
+    if (META_ACCESS_TOKEN && META_WABA_ID && template.name) {
+        try {
+            const metaUrl = `https://graph.facebook.com/${META_VERSION}/${META_WABA_ID}/message_templates?name=${template.name}`;
+            const response = await fetch(metaUrl, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${META_ACCESS_TOKEN}`
+                }
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                console.warn("Failed to delete from Meta:", data);
+                // We continue to local delete even if Meta fails (might be local-only or already deleted)
+            } else {
+                console.log("Deleted from Meta:", data);
+            }
+        } catch (displayError) {
+            console.error("Error deleting from Meta:", displayError);
+        }
+    }
+
+    // Delete from Local DB
+    const deleted = await TemplateModel.delete(id);
+    if (deleted) {
+        res.json({ message: "Template deleted successfully" });
+    } else {
+        res.status(500).json({ error: "Failed to delete template locally" });
+    }
+
+  } catch (error) {
+    console.error("Error deleting template:", error);
     res.status(500).json({ error: "Server error" });
   }
 };

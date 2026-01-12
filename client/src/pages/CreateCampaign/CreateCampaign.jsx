@@ -1,36 +1,31 @@
-import React from 'react';
+import React ,{ useEffect, useState } from 'react';
 import Select from 'react-select';
 import { Megaphone, User } from 'lucide-react';
+const CreateCampaign = () => {
+  const [templates, setTemplates] = useState([]);
 
-const templateOptions = [
-  { value: 'welcome', label: 'Welcome Message' },
-  { value: 'order_conf', label: 'Order Confirmation' },
-  { value: 'otp', label: 'OTP Verification' }
-];
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/templates');
+        const data = await response.json();
 
-const customStyles = {
-  control: (base, state) => ({
-    ...base,
-    backgroundColor: '#f9fafb',
-    borderColor: state.isFocused ? '#6366f1' : '#e5e7eb',
-    borderRadius: '0.75rem',
-    padding: '4px',
-    boxShadow: state.isFocused ? '0 0 0 2px rgba(99, 102, 241, 0.2)' : 'none',
-    '&:hover': { borderColor: '#6366f1' },
-    fontSize: '0.875rem'
-  }),
-  option: (base, state) => ({
-    ...base,
-    backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#e0e7ff' : 'white',
-    color: state.isSelected ? 'white' : '#1f2937',
-    cursor: 'pointer',
-    ':active': {
-      backgroundColor: '#6366f1'
-    }
-  })
-};
+        // Convert API data to react-select format
+        const options = data.map(item => ({
+          value: item._id,        // or item.id
+          label: item.name        // template name
+        }));
 
-const CreateCampaign = () => (
+        setTemplates(options);
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
+    return(
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
@@ -55,8 +50,8 @@ const CreateCampaign = () => (
                <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-600">Select Template</label>
                   <Select 
-                    options={templateOptions}
-                    styles={customStyles}
+                    options={templates}
+                    // styles={customStyles}
                     placeholder="Select a template..."
                     isSearchable={true}
                   />
@@ -74,7 +69,7 @@ const CreateCampaign = () => (
           </div>
         </div>
         
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit">
+        {/* <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit">
           <h3 className="text-md font-bold text-slate-700 mb-4">Summary</h3>
           <div className="space-y-3 mb-6">
              <div className="flex justify-between text-sm">
@@ -93,9 +88,9 @@ const CreateCampaign = () => (
           <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-xs leading-relaxed">
             <strong>Note:</strong> Campaign approval may take up to 24 hours depending on the template category.
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
-
+}
 export default CreateCampaign;
