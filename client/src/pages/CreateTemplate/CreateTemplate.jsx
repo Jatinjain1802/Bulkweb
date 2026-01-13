@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import Select from 'react-select';
 import { Plus, FilePlus, CheckCircle, Clock, XCircle, MoreHorizontal, Search, MessageCircle } from 'lucide-react';
 import TemplateList from './TemplateList';
+import { Toaster } from "react-hot-toast";
+import { showSuccessToast, showErrorToast } from "../../utils/customToast";
+import VaataLogo from '../../assets/img/Vaata-logo.png';
+
 
 const categoryOptions = [
   { value: 'MARKETING', label: 'Marketing' },
@@ -48,6 +52,8 @@ const CreateTemplate = () => {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = React.useRef(null);
+  const [errors, setErrors] = useState({});
+
 
   React.useEffect(() => {
     fetchTemplates();
@@ -82,91 +88,123 @@ const CreateTemplate = () => {
       setFormData(prev => ({ ...prev, headerMedia: e.target.files[0] }));
     }
   };
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Template name is required";
+    }
+
+    if (!formData.category) {
+      newErrors.category = "Category is required";
+    }
+
+    if (!formData.content.trim()) {
+      newErrors.content = "Message content is required";
+    }
+
+    // Variable example validation
+    const foundVars = extractVariables(formData.content);
+    const missingExamples = foundVars.filter(v => !formData.variableExamples[v]);
+
+    if (missingExamples.length > 0) {
+      newErrors.variableExamples = `Please provide examples for ${missingExamples
+        .map(v => `{{${v}}}`)
+        .join(", ")}`;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
 
   const handleSubmit = async () => {
+    // Step 1: Frontend validation
+    if (!validateForm()) return;
+
     setLoading(true);
+
     try {
-      // Basic Validation
-      if (!formData.name.trim()) {
-        alert('Please enter a Template Name');
-        setLoading(false);
-        return;
-      }
-      if (!formData.category) {
-        alert('Please select a Category');
-        setLoading(false);
-        return;
-      }
-      if (!formData.content.trim()) {
-        alert('Please enter Message Content');
-        setLoading(false);
-        return;
-      }
-
-      // Validation: Check if all variables have examples
-      const foundVars = extractVariables(formData.content);
-      const missingExamples = foundVars.filter(v => !formData.variableExamples[v]);
-
-      if (foundVars.length > 0 && missingExamples.length > 0) {
-        alert(`Please provide examples for variables: ${missingExamples.map(v => `{{${v}}}`).join(', ')}`);
-        setLoading(false);
-        return;
-      }
-
       const data = new FormData();
-      data.append('name', formData.name);
-      // Only append category if selected
+
+      // Required fields
+      data.append('name', formData.name.trim());
+      data.append('content', formData.content.trim());
+      data.append('language', 'en_US');
+
+      // Category
       if (formData.category) {
         data.append('category', JSON.stringify(formData.category));
       }
-      data.append('content', formData.content);
-      data.append('language', 'en_US'); // Default for now
 
-      // Header & Footer
+      // Header
       data.append('headerType', formData.headerType);
-      if (formData.headerType === 'text') data.append('headerText', formData.headerText);
-      data.append('footerText', formData.footerText);
 
-      data.append('buttonType', formData.buttonType);
-      data.append('buttons', JSON.stringify(formData.buttons));
-      data.append('variableExamples', JSON.stringify(formData.variableExamples));
+      if (formData.headerType === 'text') {
+        data.append('headerText', formData.headerText.trim());
+      }
 
-      if (formData.headerMedia && formData.headerType === 'media') {
+      if (formData.headerType === 'media' && formData.headerMedia) {
         data.append('headerMedia', formData.headerMedia);
       }
 
+      // Footer
+      data.append('footerText', formData.footerText.trim());
+
+      // Buttons
+      data.append('buttonType', formData.buttonType);
+      data.append('buttons', JSON.stringify(formData.buttons || []));
+
+      // Variable examples
+      data.append(
+        'variableExamples',
+        JSON.stringify(formData.variableExamples || {})
+      );
+
+      // API Call
       const res = await fetch('http://localhost:5000/api/templates', {
         method: 'POST',
         body: data
       });
 
       const result = await res.json();
-      if (res.ok) {
-        alert('Template created successfully!');
-        // Reset form
-        setFormData({
-          name: '',
-          category: null,
-          content: '',
-          headerType: 'none',
-          headerText: '',
-          headerMedia: null,
-          footerText: '',
-          buttonType: 'none',
-          buttons: [],
-          variableExamples: {}
-        });
-        fetchTemplates();
-      } else {
-        alert('Error: ' + (result.error || result.message || 'Failed to create template'));
+
+      if (!res.ok) {
+        // backend error ko generic form error me dikhao
+        showErrorToast(result.message || "Failed to create template");
+
+        return;
       }
+
+      // ✅ Success
+      showSuccessToast("Template created successfully!");
+
+      // Reset form
+      setFormData({
+        name: '',
+        category: null,
+        content: '',
+        headerType: 'none',
+        headerText: '',
+        headerMedia: null,
+        footerText: '',
+        buttonType: 'none',
+        buttons: [],
+        variableExamples: {}
+      });
+
+      setErrors({});
+      fetchTemplates();
+
     } catch (error) {
-      console.error("Submission error:", error);
-      alert('Failed to submit template.');
+      console.error('Submission error:', error);
+      showErrorToast("Something went wrong. Please try again.");
+
     } finally {
       setLoading(false);
     }
   };
+
 
   // React Select Options
   const headerTypeOptions = [
@@ -254,6 +292,7 @@ const CreateTemplate = () => {
 
   return (
     <div className="space-y-8 animate-fade-in-up">
+      <Toaster position="top-right" />
       {/* ===== META APPROVAL RULES : FULL WIDTH ===== */}
       <div
         className="rounded-lg p-6 border border-gray-300"
@@ -342,10 +381,19 @@ const CreateTemplate = () => {
                   type="text"
                   name="name"
                   value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter template name"
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    setErrors(prev => ({ ...prev, name: "" }));
+                  }}
+                  placeholder="Enter full name"
                   className="w-full bg-gray-50 border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:outline-none"
                 />
+                {/* 🔴 SIMPLE warning */}
+                {errors.name && (
+                  <p className="mt-1 text-xs text-red-500">
+                    Template Name is required
+                  </p>
+                )}
               </div>
               {/* Category */}
               <div>
@@ -357,10 +405,18 @@ const CreateTemplate = () => {
                   name="category"
                   options={categoryOptions}
                   value={formData.category}
-                  onChange={handleSelectChange}
+                  onChange={(option) => {
+                    handleSelectChange(option);
+                    setErrors(prev => ({ ...prev, category: "" }));
+                  }}
                   placeholder="Select category"
                   isSearchable
                 />
+                {errors.category && (
+                  <p className="mt-1 text-xs text-red-500">
+                    Category is required
+                  </p>
+                )}
               </div>
 
               {/* Header Type */}
@@ -439,10 +495,18 @@ const CreateTemplate = () => {
                   rows="3"
                   name="content"
                   value={formData.content}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    setErrors(prev => ({ ...prev, content: "" }));
+                  }}
                   placeholder="Enter message content"
                   className="w-full bg-gray-50 border border-gray-300 rounded-md px-4 py-2 text-sm resize-none focus:outline-none"
                 />
+                {errors.content && (
+                  <p className="mt-1 mb-1 text-xs text-red-500">
+                    Message content is required
+                  </p>
+                )}
 
                 <button
                   type="button"
@@ -544,12 +608,17 @@ const CreateTemplate = () => {
             <div className="bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden max-w-xs mx-auto">
               {/* Phone Header */}
               <div className="bg-[#075E54] p-4 text-white flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <MessageCircle className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden">
+                  <img
+                    src={VaataLogo}
+                    alt="Vaata Logo"
+                    className="w-6 h-6 object-contain"
+                  />
                 </div>
+
                 <div>
-                  <p className="text-sm font-semibold">Message Preview</p>
-                  <p className="text-[10px] opacity-80">WhatsApp Business</p>
+                  <p className="text-sm font-semibold">Vaata Smart</p>
+                  <p className="text-[10px] opacity-80">Message Preview</p>
                 </div>
               </div>
 
