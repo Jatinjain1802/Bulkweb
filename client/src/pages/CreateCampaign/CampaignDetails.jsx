@@ -80,6 +80,11 @@ const CampaignDetails = () => {
                     <p className="text-xs text-red-600 uppercase font-bold mb-1">Failed</p>
                     <p className="text-2xl font-bold text-red-700">{campaign.realtime_stats?.failed || 0}</p>
                 </div>
+                <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                    <p className="text-xs text-purple-600 uppercase font-bold mb-1">Total Cost</p>
+                    <p className="text-2xl font-bold text-purple-700">₹{campaign.cost || '0.00'}</p>
+                    <p className="text-[10px] text-purple-500">@ 0.8631/msg</p>
+                </div>
             </div>
 
             <h3 className="text-lg font-bold text-slate-800 mb-4">Template Insights</h3>

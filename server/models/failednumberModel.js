@@ -1,7 +1,7 @@
 import db from '../config/db.js';
 export const FailedNumber ={
     add: async(phoneNumber,reason)=>{
-        const query = `INSERT IGNORE INTO failed_number (phone_number,reason)VALUES(?,?)`;
+        const query = `INSERT IGNORE INTO failed_numbers (phone_number,reason)VALUES(?,?)`;
         await db.execute(query,[phoneNumber,reason]);
     },
     checkExists: async(phoneNumber)=>

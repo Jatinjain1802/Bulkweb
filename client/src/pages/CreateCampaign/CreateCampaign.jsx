@@ -8,6 +8,8 @@ const CreateCampaign = () => {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [campaignName, setCampaignName] = useState('');
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduleTime, setScheduleTime] = useState('');
   
   // File & Data State
   const [contacts, setContacts] = useState([]);
@@ -18,6 +20,27 @@ const CreateCampaign = () => {
   // mappings: { "1": "Column A", "2": "Column B", "phoneNumber": "Phone Column" }
   const [mappings, setMappings] = useState({});
   const [templateVars, setTemplateVars] = useState([]);
+  const [stats, setStats] = useState({ valid: 0, failed_previously: 0, estimated_cost: 0 });
+
+  useEffect(() => {
+    if(contacts.length > 0 && mappings.phoneNumber) {
+         const checkContacts = async () => {
+             try {
+                 const res = await fetch('http://localhost:5000/api/campaigns/check-contacts', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ contacts, phoneColumn: mappings.phoneNumber })
+                 });
+                 if(res.ok) {
+                     const data = await res.json();
+                     setStats(data);
+                 }
+             } catch(e) { console.error(e); }
+         };
+         const timer = setTimeout(checkContacts, 500);
+         return () => clearTimeout(timer);
+    }
+  }, [contacts, mappings.phoneNumber]);
 
   const navigate = useNavigate();
 
@@ -110,21 +133,28 @@ const CreateCampaign = () => {
         if (contacts.length === 0) return alert("Please upload contacts");
         if (!mappings.phoneNumber) return alert("Please select the Phone Number column");
 
-        // Validate all template vars are mapped
         for (const v of templateVars) {
             if (!mappings[v]) return alert(`Please map variable {{${v}}}`);
         }
 
+        if (isScheduled && !scheduleTime) return alert("Please select a valid schedule time.");
+
         try {
+            const payload = {
+                name: campaignName,
+                templateId: selectedTemplate.value,
+                contacts: contacts,
+                mappings: mappings
+            };
+
+            if (isScheduled) {
+                payload.scheduledAt = new Date(scheduleTime).toISOString();
+            }
+
             const response = await fetch('http://localhost:5000/api/campaigns', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: campaignName,
-                    templateId: selectedTemplate.value,
-                    contacts: contacts,
-                    mappings: mappings
-                })
+                body: JSON.stringify(payload)
             });
             
             const resData = await response.json();
@@ -153,7 +183,7 @@ const CreateCampaign = () => {
             className={`px-6 py-2.5 rounded-xl font-medium transition-colors shadow-lg flex items-center gap-2 ${contacts.length > 0 && campaignName && selectedTemplate ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
         >
           <Megaphone className="w-4 h-4" />
-          Launch Campaign
+          {isScheduled ? 'Schedule Campaign' : 'Launch Campaign'}
         </button>
       </div>
   
@@ -181,6 +211,32 @@ const CreateCampaign = () => {
                     placeholder="Select a template..."
                     isSearchable={true}
                   />
+               </div>
+               
+               {/* Scheduling Options */}
+               <div className="pt-4 border-t border-gray-100">
+                    <label className="flex items-center gap-2 cursor-pointer mb-3">
+                        <input 
+                            type="checkbox" 
+                            checked={isScheduled} 
+                            onChange={(e) => setIsScheduled(e.target.checked)}
+                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-medium text-slate-700">Schedule for later</span>
+                    </label>
+                    
+                    {isScheduled && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                             <label className="text-sm font-semibold text-slate-600">Schedule Date & Time</label>
+                             <input 
+                                type="datetime-local" 
+                                value={scheduleTime}
+                                onChange={(e) => setScheduleTime(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:border-indigo-500 transition-colors"
+                             />
+                             <p className="text-xs text-slate-400">Campaign will automatically launch at this time.</p>
+                        </div>
+                    )}
                </div>
             </div>
           </div>
@@ -276,6 +332,8 @@ const CreateCampaign = () => {
         
         {/* Helper Sidebar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit">
+
+
            <h3 className="text-md font-bold text-slate-700 mb-4">Summary</h3>
            <div className="space-y-3 mb-6">
               <div className="flex justify-between text-sm">
@@ -283,16 +341,25 @@ const CreateCampaign = () => {
                 <span className="font-medium text-slate-800">{selectedTemplate ? selectedTemplate.label : '-'}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Recipients</span>
+                <span className="text-slate-500">Total Uploaded</span>
                 <span className="font-medium text-slate-800">{contacts.length}</span>
               </div>
+              {stats.failed_previously > 0 && (
+                  <div className="flex justify-between text-sm text-red-600">
+                    <span>Failed Previously</span>
+                    <span className="font-medium">-{stats.failed_previously}</span>
+                  </div>
+              )}
+              <div className="flex justify-between text-sm border-t border-dashed pt-2">
+                <span className="text-slate-700 font-bold">Valid Recipients</span>
+                <span className="font-bold text-indigo-600">{stats.valid > 0 ? stats.valid : contacts.length}</span>
+              </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Status</span>
-                <span className="font-medium text-slate-800">{contacts.length > 0 && selectedTemplate ? 'Ready' : 'Draft'}</span>
+                <span className="text-slate-500">Approx Cost</span>
+                <span className="font-medium text-slate-800">₹{stats.estimated_cost}</span>
               </div>
            </div>
            
-
            <div className="bg-indigo-50 text-indigo-700 p-4 rounded-xl text-xs leading-relaxed flex gap-2">
              <AlertCircle className="w-5 h-5 flex-shrink-0" />
              <div>

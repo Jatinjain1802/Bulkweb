@@ -1,4 +1,5 @@
 import { WhatsappMessageModel } from '../models/whatsappMessageModel.js';
+import { FailedNumber } from '../models/failednumberModel.js';
 
 export const verifyWebhook = (req, res) => {
   const mode = req.query['hub.mode'];
@@ -40,6 +41,19 @@ export const handleWebhook = async (req, res) => {
                 const timestamp = statusObj.timestamp; 
                 
                 await WhatsappMessageModel.updateStatus(wamid, status, timestamp);
+
+                if (status === 'failed') {
+                    const recipientId = statusObj.recipient_id;
+                    const errorDetails = statusObj.errors?.[0]?.message || 'Unknown error from webhook';
+                    if (recipientId) {
+                        try {
+                            await FailedNumber.add(recipientId, errorDetails);
+                            console.log(`Added ${recipientId} to failed numbers via webhook.`);
+                        } catch (err) {
+                            console.error(`Error adding to failed numbers: ${err.message}`);
+                        }
+                    }
+                }
             }
         }
     }

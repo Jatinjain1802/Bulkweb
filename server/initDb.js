@@ -64,13 +64,36 @@ async function initDb() {
         status VARCHAR(50) DEFAULT 'draft',
         total_contacts INT DEFAULT 0,
         successful_sends INT DEFAULT 0,
+        successful_sends INT DEFAULT 0,
         failed_sends INT DEFAULT 0,
+        cost DECIMAL(10, 4) DEFAULT 0.0000,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE SET NULL
       )
     `;
     await connection.query(createCampaignsTable);
     console.log("Campaigns table ready.");
+
+    // Check for cost column in campaigns
+    const [campColumns] = await connection.query(`SHOW COLUMNS FROM campaigns LIKE 'cost'`);
+    if (campColumns.length === 0) {
+      await connection.query(`ALTER TABLE campaigns ADD COLUMN cost DECIMAL(10, 4) DEFAULT 0.0000`);
+      console.log("Added cost column to campaigns table.");
+    }
+
+    // Check for scheduled_at column
+    const [schedColumns] = await connection.query(`SHOW COLUMNS FROM campaigns LIKE 'scheduled_at'`);
+    if (schedColumns.length === 0) {
+      await connection.query(`ALTER TABLE campaigns ADD COLUMN scheduled_at DATETIME NULL`);
+      console.log("Added scheduled_at column to campaigns table.");
+    }
+
+    // Check for mappings column
+    const [mapColumns] = await connection.query(`SHOW COLUMNS FROM campaigns LIKE 'mappings'`);
+    if (mapColumns.length === 0) {
+      await connection.query(`ALTER TABLE campaigns ADD COLUMN mappings JSON`);
+      console.log("Added mappings column to campaigns table.");
+    }
 
     const createCampaignLogsTable = `
       CREATE TABLE IF NOT EXISTS campaign_logs (

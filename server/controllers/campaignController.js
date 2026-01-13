@@ -5,9 +5,11 @@ import { sendWhatsappMessage } from '../utils/whatsappService.js';
 import { WhatsappMessageModel } from '../models/whatsappMessageModel.js';
 import { FailedNumber } from '../models/failednumberModel.js';
 
+import { processCampaign } from '../utils/campaignService.js';
+
 export const createCampaign = async (req, res) => {
   try {
-    const { name, templateId, contacts, mappings } = req.body;
+    const { name, templateId, contacts, mappings, scheduledAt } = req.body;
 
     // 1. Validate Input
     if (!name || !templateId || !contacts || !Array.isArray(contacts) || contacts.length === 0) {
@@ -21,34 +23,20 @@ export const createCampaign = async (req, res) => {
     }
 
     // 3. Upsert Contacts
-    // contacts should be: [{ phone, ...otherFields }]
-    // Filter duplicates within the uploaded file first? 
-    // The user said "check by phone number" which ContactModel.upsertMany handles via DB.
-    // Ensure contacts have 'phone_number' key. 
-    // Frontend likely sends keys as per CSV headers. One must be mapped to 'phone_number'.
-    // We expect frontend to tell us which column is phone number using 'mappings.phoneNumber'.
-
-    const phoneColumn = mappings?.phoneNumber || 'phone'; // Default or mapped
+    const phoneColumn = mappings?.phoneNumber || 'phone'; 
     
     // Transform contacts for DB
-    const start = Date.now();
     const dbContacts = contacts.map(row => {
-        // Clean phone number (remove non-digits, maybe add country code if needed?
-        // For now assume user provides clean numbers or we just strip +/spaces)
         let phone = String(row[phoneColumn] || '').replace(/[^0-9]/g, '');
-        
-        // If 10 digits, assume India and prepend 91
         if (phone.length === 10) {
             phone = '91' + phone;
         }
-        
-        // Basic validation
         if (phone.length < 10) return null; 
 
         return {
             phone_number: phone,
-            name: row['name'] || row['Name'] || '', // Try to guess or leave empty
-            custom_attributes: row // store everything
+            name: row['name'] || row['Name'] || '',
+            custom_attributes: row 
         };
     }).filter(Boolean);
 
@@ -56,134 +44,116 @@ export const createCampaign = async (req, res) => {
         return res.status(400).json({ error: "No valid contacts found (check phone number column)." });
     }
 
-    await ContactModel.upsertMany(dbContacts);
-// Filter out
-const allPhones = dbContacts.map(c=>c.phone_number);
-let validContacts = [...dbContacts];
-if (allPhones.length>0){
-    const failedNumbers = await FailedNumber.checkExists(allPhones);
-    if (failedNumbers.length>0){
-        console.log("Failed numbers:",failedNumbers);
-        validContacts = dbContacts.filter(c=>!failedNumbers.includes(c.phone_number));
-    }
-}
-    if (validContacts.length === 0) {
-    return res.status(400).json({ error: "All contacts were filtered out as they are in the failed list." });
-}
-// 3.2 Update Upsert to use 'validContacts' instead of 'dbContacts'
-await ContactModel.upsertMany(validContacts);
-// 4. Create Campaign (make sure to use validContacts.length)
-const campaignId = await CampaignModel.create({
-    name,
-    template_id: templateId,
-    status: 'processing',
-    total_contacts: validContacts.length // Updated count
-});
-
-    // 5. Start Sending in Background
-    // We don't await this entire process to return the response
-    (async () => {
-        let successCount = 0;
-        let failCount = 0;
-
-
-        // Fetch IDs for all contacts to log properly
-        const contactPhones = dbContacts.map(c => c.phone_number);
-        const contactIdMap = new Map();
-        try {
-            // Chunking might be needed for very large lists, keeping simple for now
-            if (contactPhones.length > 0) {
-                 const rows = await ContactModel.findIdsByPhones(contactPhones);
-                 rows.forEach(r => contactIdMap.set(r.phone_number, r.id));
-            }
-        } catch(e) { console.error("Error fetching contact IDs for logs:", e); }
-
-        for (const contact of dbContacts) {
-            const contactId = contactIdMap.get(contact.phone_number);
-            try {
-                // Construct Components
-                const parameters = [];
-                const varKeys = Object.keys(mappings).filter(k => !isNaN(k)).sort((a,b) => a-b);
-                
-                if (varKeys.length > 0) {
-                     const folderParams = varKeys.map(k => {
-                         const colName = mappings[k];
-                         const val = contact.custom_attributes[colName] || '';
-                         return { type: "text", text: String(val) };
-                     });
-                     parameters.push(...folderParams);
-                }
-
-                const components = [];
-                if (parameters.length > 0) {
-                    components.push({ type: "body", parameters: parameters });
-                }
-
-                // Send
-                const sentMsg = await sendWhatsappMessage(
-                    contact.phone_number,
-                    template.name,
-                    template.language,
-                    components
-                );
-
-                if (sentMsg?.id) {
-                    await WhatsappMessageModel.create({
-                        wamid: sentMsg.id,
-                        template_id: template.id,
-                        template_name: template.name,
-                        category: template.category,
-                        recipient: contact.phone_number,
-                        status: 'sent',
-                        campaign_id: campaignId
-                    });
-                }
-
-                successCount++;
-                
-                // Log Success
-                if (contactId) {
-                    await CampaignModel.logAttempt({
-                        campaign_id: campaignId,
-                        contact_id: contactId,
-                        status: 'sent',
-                        message_id: sentMsg?.id || 'mock_id',
-                        error_details: null
-                    });
-                }
-
-            } catch (err) {
-                console.error(`Failed to send to ${contact.phone_number}:`, err.message);
-                failCount++;
-                
-                await FailedNumber.add(contact.phone_number, err.message);
-                // Log Failure
-                if (contactId) {
-                    await CampaignModel.logAttempt({
-                        campaign_id: campaignId,
-                        contact_id: contactId,
-                        status: 'failed',
-                        message_id: null,
-                        error_details: err.message
-                    });
-                }
-            }
+    // Filter duplicates/failed logic (retained)
+    const allPhones = dbContacts.map(c=>c.phone_number);
+    let validContacts = [...dbContacts];
+    if (allPhones.length > 0){
+        const failedNumbers = await FailedNumber.checkExists(allPhones);
+        if (failedNumbers.length > 0){
+            validContacts = dbContacts.filter(c => !failedNumbers.includes(c.phone_number));
         }
+    }
+    
+    if (validContacts.length === 0) {
+        return res.status(400).json({ error: "All contacts were filtered out as they are in the failed list." });
+    }
 
-        // Update Final Stats
-        await CampaignModel.updateStats(campaignId, successCount, failCount);
-        
-        const finalStatus = failCount === 0 ? 'completed' : (successCount > 0 ? 'partial' : 'failed');
-        await CampaignModel.updateStatus(campaignId, finalStatus);
-        
-    })();
+    await ContactModel.upsertMany(validContacts);
 
-    res.status(201).json({ message: "Campaign launched successfully", campaignId });
+    // 4. Create Campaign
+    const campaignStatus = scheduledAt ? 'scheduled' : 'processing';
+    // Format scheduledAt to MySQL datetime if needed (ISO usually works if driver supports it, else use moment/date-fns)
+    // Assuming ISO string "YYYY-MM-DDTHH:mm:ss.sssZ" passes fine or needs conversion. 
+    // Best to convert to 'YYYY-MM-DD HH:mm:ss' local/UTC depending on server config.
+    // Let's assume input is ISO and mysql2 handles it or we cast it. 
+    const scheduleDate = scheduledAt ? new Date(scheduledAt) : null;
+
+    const campaignId = await CampaignModel.create({
+        name,
+        template_id: templateId,
+        status: campaignStatus,
+        total_contacts: validContacts.length,
+        scheduled_at: scheduleDate,
+        mappings: mappings
+    });
+
+    // 5. Create Pending Logs
+    // We need contact IDs.
+    const contactPhones = validContacts.map(c => c.phone_number);
+    const contactIds = await ContactModel.findIdsByPhones(contactPhones);
+    // Create a map
+    const phoneToId = new Map();
+    contactIds.forEach(c => phoneToId.set(c.phone_number, c.id));
+
+    const logs = [];
+    validContacts.forEach(c => {
+        const cid = phoneToId.get(c.phone_number);
+        if (cid) {
+            logs.push({
+                campaign_id: campaignId,
+                contact_id: cid,
+                status: 'scheduled', // Use 'scheduled' as initial state
+                message_id: null,
+                error_details: null
+            });
+        }
+    });
+
+    await CampaignModel.createLogs(logs);
+
+    // 6. Execute or Schedule
+    if (scheduledAt) {
+        res.status(201).json({ message: "Campaign scheduled successfully", campaignId });
+    } else {
+        // Run immediately
+        processCampaign(campaignId);
+        res.status(201).json({ message: "Campaign launched successfully", campaignId });
+    }
 
   } catch (error) {
     console.error("Error creating campaign:", error);
     res.status(500).json({ error: "Server error" });
   }
+};
+
+export const validateContacts = async (req, res) => {
+    try {
+        const { contacts, phoneColumn } = req.body;
+        if (!contacts || !Array.isArray(contacts)) {
+            return res.status(400).json({ error: "Invalid contact list" });
+        }
+
+        const stats = {
+            total: 0,
+            valid: 0,
+            failed_previously: 0,
+            estimated_cost: 0
+        };
+
+        const col = phoneColumn || 'phone';
+        const phoneList = contacts.map(c => {
+             let p = String(c[col] || '').replace(/[^0-9]/g, '');
+             if(p.length === 10) p = '91' + p;
+             return p;
+        }).filter(p => p.length >= 10);
+
+        stats.total = phoneList.length;
+
+        if (phoneList.length > 0) {
+            const failedNumbers = await FailedNumber.checkExists(phoneList);
+            stats.failed_previously = failedNumbers.length;
+            stats.valid = stats.total - stats.failed_previously;
+        } else {
+            stats.valid = 0;
+        }
+
+        stats.estimated_cost = Number((stats.valid * 0.8631).toFixed(4));
+
+        res.json(stats);
+    } catch (error) {
+        console.error("Validation error:", error);
+        res.status(500).json({ error: "Server error" });
+    }
 };
 
 export const getCampaigns = async (req, res) => {
