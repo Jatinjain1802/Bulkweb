@@ -1,0 +1,31 @@
+.toast-progress-line {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
+    background: #16a34a;
+    width: 100%;
+    transform-origin: left;
+    animation: decreaseWidth 3s linear forwards;
+}
+
+.toast-progress-line-error {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
+    background: #ef4444;
+    width: 100%;
+    transform-origin: left;
+    animation: decreaseWidth 3s linear forwards;
+}
+
+@keyframes decreaseWidth {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
+}
