@@ -87,12 +87,36 @@ async function initDb() {
     `;
     await connection.query(createCampaignLogsTable);
     console.log("Campaign Logs table ready.");
-
+// Failed number table
+    const createFailedNumbersTable = `
+      CREATE TABLE IF NOT EXISTS failed_numbers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        phone_number VARCHAR(20) NOT NULL UNIQUE,
+        reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await connection.query(createFailedNumbersTable);
+    console.log("Failed Numbers table ready.");
     // Check for rejection_reason column
     const [columns] = await connection.query(`SHOW COLUMNS FROM templates LIKE 'rejection_reason'`);
     if (columns.length === 0) {
       await connection.query(`ALTER TABLE templates ADD COLUMN rejection_reason TEXT`);
       console.log("Added rejection_reason column to templates table.");
+    }
+
+    // Check for quality_score column
+    const [qualityColumns] = await connection.query(`SHOW COLUMNS FROM templates LIKE 'quality_score'`);
+    if (qualityColumns.length === 0) {
+      await connection.query(`ALTER TABLE templates ADD COLUMN quality_score JSON`);
+      console.log("Added quality_score column to templates table.");
+    }
+
+    // Check for stats column
+    const [statsColumns] = await connection.query(`SHOW COLUMNS FROM templates LIKE 'stats'`);
+    if (statsColumns.length === 0) {
+      await connection.query(`ALTER TABLE templates ADD COLUMN stats JSON`);
+      console.log("Added stats column to templates table.");
     }
 
     // Seed dummy user if not exists
@@ -107,6 +131,34 @@ async function initDb() {
       console.log("Seeded demo user.");
     } else {
         console.log("Demo user already exists.");
+    }
+
+    const createWhatsappMessagesTable = `
+      CREATE TABLE IF NOT EXISTS whatsapp_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        wamid VARCHAR(100) NOT NULL UNIQUE,
+        template_id INT,
+        template_name VARCHAR(255),
+        category VARCHAR(50),
+        recipient VARCHAR(50),
+        status VARCHAR(20) DEFAULT 'sent',
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        delivered_at TIMESTAMP NULL,
+        read_at TIMESTAMP NULL,
+        failed_at TIMESTAMP NULL,
+        INDEX (template_id),
+        INDEX (sent_at)
+      )
+    `;
+    await connection.query(createWhatsappMessagesTable);
+    console.log("Whatsapp Messages table ready.");
+
+    // Check for campaign_id column in whatsapp_messages
+    const [wmColumns] = await connection.query(`SHOW COLUMNS FROM whatsapp_messages LIKE 'campaign_id'`);
+    if (wmColumns.length === 0) {
+      await connection.query(`ALTER TABLE whatsapp_messages ADD COLUMN campaign_id INT`);
+      await connection.query(`ALTER TABLE whatsapp_messages ADD FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE SET NULL`);
+      console.log("Added campaign_id column to whatsapp_messages table.");
     }
 
   } catch (error) {

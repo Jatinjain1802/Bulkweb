@@ -11,6 +11,8 @@ app.use(express.json());
 
 import authRoutes from './routes/authRoutes.js';
 import templateRoutes from './routes/templateRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
 
 app.get("/", (req, res) => {
   res.send("API running...");
@@ -21,6 +23,8 @@ import campaignRoutes from './routes/campaignRoutes.js';
 app.use('/api/auth', authRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/reports', reportRoutes);
+app.use('/webhook', webhookRoutes);
 
 
 const PORT = process.env.PORT || 5000;

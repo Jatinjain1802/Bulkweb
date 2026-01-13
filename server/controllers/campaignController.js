@@ -2,6 +2,8 @@ import { CampaignModel } from '../models/campaignModel.js';
 import { ContactModel } from '../models/contactModel.js';
 import { TemplateModel } from '../models/templateModel.js';
 import { sendWhatsappMessage } from '../utils/whatsappService.js';
+import { WhatsappMessageModel } from '../models/whatsappMessageModel.js';
+import { FailedNumber } from '../models/failednumberModel.js';
 
 export const createCampaign = async (req, res) => {
   try {
@@ -55,14 +57,28 @@ export const createCampaign = async (req, res) => {
     }
 
     await ContactModel.upsertMany(dbContacts);
-
-    // 4. Create Campaign
-    const campaignId = await CampaignModel.create({
-        name,
-        template_id: templateId,
-        status: 'processing',
-        total_contacts: dbContacts.length
-    });
+// Filter out
+const allPhones = dbContacts.map(c=>c.phone_number);
+let validContacts = [...dbContacts];
+if (allPhones.length>0){
+    const failedNumbers = await FailedNumber.checkExists(allPhones);
+    if (failedNumbers.length>0){
+        console.log("Failed numbers:",failedNumbers);
+        validContacts = dbContacts.filter(c=>!failedNumbers.includes(c.phone_number));
+    }
+}
+    if (validContacts.length === 0) {
+    return res.status(400).json({ error: "All contacts were filtered out as they are in the failed list." });
+}
+// 3.2 Update Upsert to use 'validContacts' instead of 'dbContacts'
+await ContactModel.upsertMany(validContacts);
+// 4. Create Campaign (make sure to use validContacts.length)
+const campaignId = await CampaignModel.create({
+    name,
+    template_id: templateId,
+    status: 'processing',
+    total_contacts: validContacts.length // Updated count
+});
 
     // 5. Start Sending in Background
     // We don't await this entire process to return the response
@@ -111,6 +127,18 @@ export const createCampaign = async (req, res) => {
                     components
                 );
 
+                if (sentMsg?.id) {
+                    await WhatsappMessageModel.create({
+                        wamid: sentMsg.id,
+                        template_id: template.id,
+                        template_name: template.name,
+                        category: template.category,
+                        recipient: contact.phone_number,
+                        status: 'sent',
+                        campaign_id: campaignId
+                    });
+                }
+
                 successCount++;
                 
                 // Log Success
@@ -128,6 +156,7 @@ export const createCampaign = async (req, res) => {
                 console.error(`Failed to send to ${contact.phone_number}:`, err.message);
                 failCount++;
                 
+                await FailedNumber.add(contact.phone_number, err.message);
                 // Log Failure
                 if (contactId) {
                     await CampaignModel.logAttempt({
@@ -162,6 +191,25 @@ export const getCampaigns = async (req, res) => {
         const campaigns = await CampaignModel.findAll();
         res.json(campaigns);
     } catch (error) {
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+export const getCampaignById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const campaign = await CampaignModel.findById(id);
+        if (!campaign) {
+            return res.status(404).json({ error: "Campaign not found" });
+        }
+
+        // Fetch Real-time stats from whatsapp_messages
+        const stats = await WhatsappMessageModel.getCampaignStats(id);
+        
+        // Merge stats with campaign object
+        res.json({ ...campaign, realtime_stats: stats });
+    } catch (error) {
+        console.error("Error fetching campaign:", error);
         res.status(500).json({ error: "Server error" });
     }
 };

@@ -2,7 +2,7 @@ import db from '../config/db.js';
 
 export const TemplateModel = {
   create: async (templateData) => {
-    const { name, language, category, structure, status, meta_id, rejection_reason } = templateData;
+    const { name, language, category, structure, status, meta_id, rejection_reason, quality_score, stats } = templateData;
     
     // safe stringify
     let structureStr;
@@ -12,9 +12,13 @@ export const TemplateModel = {
         structureStr = '[]';
     }
 
+    // safe stringify for quality_score and stats
+    const qualityScoreStr = (typeof quality_score === 'object') ? JSON.stringify(quality_score) : quality_score || null;
+    const statsStr = (typeof stats === 'object') ? JSON.stringify(stats) : stats || null;
+
     const query = `
-      INSERT INTO templates (name, language, category, structure, status, meta_id, rejection_reason)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO templates (name, language, category, structure, status, meta_id, rejection_reason, quality_score, stats)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -24,7 +28,9 @@ export const TemplateModel = {
       structureStr, 
       status || 'local_pending', 
       meta_id || null,
-      rejection_reason || null
+      rejection_reason || null,
+      qualityScoreStr,
+      statsStr
     ];
     
     console.log("DB Insert Debug:", values);
@@ -70,6 +76,42 @@ export const TemplateModel = {
     
     const [result] = await db.execute(query, params);
     return result.affectedRows > 0;
+  },
+
+  updateSyncDetails: async (id, updates) => {
+      const { status, meta_id, rejection_reason, quality_score, stats } = updates;
+      let query = 'UPDATE templates SET ';
+      const params = [];
+      const fields = [];
+
+      if (status !== undefined) {
+          fields.push('status = ?');
+          params.push(status);
+      }
+      if (meta_id !== undefined) {
+          fields.push('meta_id = ?');
+          params.push(meta_id);
+      }
+      if (rejection_reason !== undefined) {
+          fields.push('rejection_reason = ?');
+          params.push(rejection_reason);
+      }
+      if (quality_score !== undefined) {
+          fields.push('quality_score = ?');
+          params.push(typeof quality_score === 'object' ? JSON.stringify(quality_score) : quality_score);
+      }
+      if (stats !== undefined) {
+          fields.push('stats = ?');
+          params.push(typeof stats === 'object' ? JSON.stringify(stats) : stats);
+      }
+
+      if (fields.length === 0) return false;
+
+      query += fields.join(', ') + ' WHERE id = ?';
+      params.push(id);
+
+      const [result] = await db.execute(query, params);
+      return result.affectedRows > 0;
   },
 
   updateCategory: async (id, category) => {

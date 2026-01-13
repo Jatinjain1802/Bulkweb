@@ -38,7 +38,18 @@ export const CampaignModel = {
   },
   
   findById: async (id) => {
-      const [rows] = await db.execute('SELECT * FROM campaigns WHERE id = ?', [id]);
+      const [rows] = await db.execute(`
+        SELECT c.*, 
+               t.name as template_name, 
+               t.quality_score as template_quality_score, 
+               t.stats as template_stats,
+               t.category as template_category,
+               t.language as template_language,
+               t.status as template_status
+        FROM campaigns c 
+        LEFT JOIN templates t ON c.template_id = t.id 
+        WHERE c.id = ?
+      `, [id]);
       return rows[0];
   },
   
@@ -54,9 +65,13 @@ export const CampaignModel = {
 
   findLogsByCampaignId: async (campaignId) => {
       const query = `
-        SELECT l.*, c.name as contact_name, c.phone_number 
+        SELECT l.*, 
+               COALESCE(wm.status, l.status) as status,
+               c.name as contact_name, 
+               c.phone_number 
         FROM campaign_logs l
         JOIN contacts c ON l.contact_id = c.id
+        LEFT JOIN whatsapp_messages wm ON l.message_id = wm.wamid
         WHERE l.campaign_id = ?
         ORDER BY l.created_at DESC
       `;
