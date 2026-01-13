@@ -33,6 +33,7 @@ export const handleWebhook = async (req, res) => {
         const changes = entry?.changes?.[0];
         const value = changes?.value;
         const statuses = value?.statuses;
+        const messages = value?.messages;
 
         if (statuses && Array.isArray(statuses)) {
             for (const statusObj of statuses) {
@@ -53,6 +54,39 @@ export const handleWebhook = async (req, res) => {
                             console.error(`Error adding to failed numbers: ${err.message}`);
                         }
                     }
+                }
+            }
+        }
+
+        if (messages && Array.isArray(messages)) {
+            for (const msg of messages) {
+                const wamid = msg.id;
+                const from = msg.from; // Phone number
+                const timestamp = msg.timestamp;
+                const type = msg.type;
+                
+                let content = '';
+                if (type === 'text') {
+                    content = msg.text.body;
+                } else {
+                    // Handle other types as needed (image, etc)
+                    content = `[${type} message]`;
+                }
+
+                try {
+                  await WhatsappMessageModel.saveIncoming({
+                    wamid,
+                    from,
+                    content,
+                    message_type: type,
+                    timestamp
+                  });
+                  console.log(`Saved incoming message from ${from}`);
+                } catch (err) {
+                  // Ignore duplicate entry errors (common with retries)
+                  if (err.code !== 'ER_DUP_ENTRY') {
+                    console.error("Error saving incoming message:", err);
+                  }
                 }
             }
         }

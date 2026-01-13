@@ -288,6 +288,38 @@ const CreateCampaign = () => {
                                 </select>
                             </div>
 
+                            {/* Header Media Mapping */}
+                            {(() => {
+                                if (!selectedTemplate) return null;
+                                let struct = [];
+                                try {
+                                    struct = typeof selectedTemplate.original.structure === 'string' 
+                                        ? JSON.parse(selectedTemplate.original.structure) 
+                                        : selectedTemplate.original.structure;
+                                } catch (e) {}
+                                
+                                const header = struct.find(c => c.type === 'HEADER');
+                                if (header && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(header.format)) {
+                                    return (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-indigo-50 p-2 rounded-lg border border-indigo-100">
+                                            <label className="text-xs font-semibold text-indigo-700">
+                                                Header {header.format} URL
+                                                <span className="block text-[10px] text-indigo-500 font-normal">Map a column containing the media link</span>
+                                            </label>
+                                            <select 
+                                                className="px-3 py-2 rounded-lg border border-indigo-200 text-sm focus:outline-none focus:border-indigo-500"
+                                                value={mappings['header_url'] || ''}
+                                                onChange={(e) => setMappings({...mappings, 'header_url': e.target.value})}
+                                            >
+                                                <option value="">Select Column (Optional)</option>
+                                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                            </select>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+
                             {/* Dynamic Template Mappings */}
                             {templateVars.map(v => (
                                 <div key={v} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">

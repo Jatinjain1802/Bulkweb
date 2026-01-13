@@ -141,6 +141,13 @@ async function initDb() {
       await connection.query(`ALTER TABLE templates ADD COLUMN stats JSON`);
       console.log("Added stats column to templates table.");
     }
+    
+    // Check for sample_media_url
+    const [mediaColumns] = await connection.query(`SHOW COLUMNS FROM templates LIKE 'sample_media_url'`);
+    if (mediaColumns.length === 0) {
+      await connection.query(`ALTER TABLE templates ADD COLUMN sample_media_url VARCHAR(500)`);
+      console.log("Added sample_media_url column to templates table.");
+    }
 
     // Seed dummy user if not exists
     const [rows] = await connection.query('SELECT * FROM users WHERE email = ?', ['demo@gmail.com']);
@@ -182,6 +189,27 @@ async function initDb() {
       await connection.query(`ALTER TABLE whatsapp_messages ADD COLUMN campaign_id INT`);
       await connection.query(`ALTER TABLE whatsapp_messages ADD FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE SET NULL`);
       console.log("Added campaign_id column to whatsapp_messages table.");
+    }
+
+    // Check for content column
+    const [contentCol] = await connection.query(`SHOW COLUMNS FROM whatsapp_messages LIKE 'content'`);
+    if (contentCol.length === 0) {
+      await connection.query(`ALTER TABLE whatsapp_messages ADD COLUMN content TEXT`);
+      console.log("Added content column to whatsapp_messages table.");
+    }
+
+    // Check for message_type column
+    const [msgTypeCol] = await connection.query(`SHOW COLUMNS FROM whatsapp_messages LIKE 'message_type'`);
+    if (msgTypeCol.length === 0) {
+      await connection.query(`ALTER TABLE whatsapp_messages ADD COLUMN message_type VARCHAR(20) DEFAULT 'text'`);
+      console.log("Added message_type column to whatsapp_messages table.");
+    }
+
+    // Check for direction column
+    const [directionCol] = await connection.query(`SHOW COLUMNS FROM whatsapp_messages LIKE 'direction'`);
+    if (directionCol.length === 0) {
+      await connection.query(`ALTER TABLE whatsapp_messages ADD COLUMN direction VARCHAR(10) DEFAULT 'outbound'`);
+      console.log("Added direction column to whatsapp_messages table.");
     }
 
   } catch (error) {

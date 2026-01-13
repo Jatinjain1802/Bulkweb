@@ -24,16 +24,6 @@ export const processCampaign = async (campaignId) => {
         }
 
         // Fetch pending contacts (those with 'scheduled' or 'pending' status in logs)
-        // We need to ensure we add 'pending' status support in CampaignModel.getPendingContacts if not already there
-        // Actually, let's just fetch all logs for this campaign that are not sent/failed?
-        // Or assume the caller (scheduler or controller) sets them to 'scheduled'/'pending'.
-        // The controller currently doesn't create logs initially. I WILL CHANGE THIS.
-        // So we need to fetch contacts linked to this campaign via logs.
-        
-        // I need to ensure getPendingContacts queries for 'pending' OR 'scheduled'.
-        // Let's assume we use 'scheduled' for now as the status in logs for future compatibility.
-        // If "Instant", we can also just use 'scheduled' status in logs but trigger immediately.
-        
         const pendingContacts = await CampaignModel.getPendingContacts(campaignId);
         
         if (!pendingContacts || pendingContacts.length === 0) {
@@ -51,12 +41,29 @@ export const processCampaign = async (campaignId) => {
             return;
         }
 
+        // Parse Template Structure
+        let templateStructure = [];
+        try {
+            templateStructure = typeof template.structure === 'string' 
+                ? JSON.parse(template.structure) 
+                : template.structure;
+        } catch (e) {
+            console.error("Error parsing template structure", e);
+        }
+
+        // Identify Header Component in Template
+        const headerComponent = templateStructure.find(c => c.type === 'HEADER');
+        const hasMediaHeader = headerComponent && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format);
+
         let successCount = 0;
         let failCount = 0;
 
         for (const contact of pendingContacts) {
              try {
                 // Construct Components
+                const components = [];
+
+                // 1. Handle Body Parameters ({{1}}, {{2}}, etc.)
                 const parameters = [];
                 // Mappings keys should be the variable indices (1, 2, ...)
                 const varKeys = Object.keys(mappings || {}).filter(k => !isNaN(k)).sort((a,b) => a-b);
@@ -64,9 +71,6 @@ export const processCampaign = async (campaignId) => {
                 if (varKeys.length > 0) {
                      const folderParams = varKeys.map(k => {
                          const colName = mappings[k];
-                         // contact.custom_attributes might be a string if fetched from DB? 
-                         // Check ContactModel structure. It says JSON type in DB.
-                         // mysql2 usually parses JSON columns automatically.
                          const attrs = (typeof contact.custom_attributes === 'string') 
                             ? JSON.parse(contact.custom_attributes) 
                             : contact.custom_attributes;
@@ -77,9 +81,53 @@ export const processCampaign = async (campaignId) => {
                      parameters.push(...folderParams);
                 }
 
-                const components = [];
                 if (parameters.length > 0) {
                     components.push({ type: "body", parameters: parameters });
+                }
+
+                // 2. Handle Header Parameters (Media)
+                if (hasMediaHeader) {
+                    const headerParams = [];
+                    const mediaType = headerComponent.format.toLowerCase(); // image, video, document
+                    
+                    // Priority 1: Check for explicit mapped URL (e.g., mappings['header_url'])
+                    const mappedUrl = mappings['header_url'];
+                    
+                    // Priority 2: Use Template's Saved Local Media (Best fallback)
+                    let savedMediaUrl = null;
+                    if (template.sample_media_url) {
+                         // Construct full public URL
+                         // Ideally use an ENV var for Base URL. 
+                         // Defaulting to ngrok or localhost if not set, but must be public for Meta!
+                         const baseUrl = process.env.PUBLIC_URL || 'http://localhost:5000'; 
+                         savedMediaUrl = `${baseUrl}/${template.sample_media_url}`;
+                    }
+
+                    // Priority 3: Use Template Example Handle (Fallback)
+                    const exampleHandle = headerComponent.example?.header_handle?.[0];
+
+                    if (mappedUrl) {
+                        headerParams.push({
+                            type: mediaType,
+                            [mediaType]: { link: mappedUrl }
+                        });
+                    } else if (savedMediaUrl) {
+                        headerParams.push({
+                            type: mediaType,
+                            [mediaType]: { link: savedMediaUrl }
+                        });
+                    } else if (exampleHandle) {
+                        headerParams.push({
+                            type: mediaType,
+                            [mediaType]: { id: exampleHandle }
+                        });
+                    } else {
+                        console.warn(`Campaign ${campaignId}: Missing media for header.`);
+                    }
+
+                    if (headerParams.length > 0) {
+                        components.push({ type: "header", parameters: headerParams });
+                    }
                 }
 
                 // Send

@@ -2,7 +2,7 @@ import db from '../config/db.js';
 
 export const TemplateModel = {
   create: async (templateData) => {
-    const { name, language, category, structure, status, meta_id, rejection_reason, quality_score, stats } = templateData;
+    const { name, language, category, structure, status, meta_id, rejection_reason, quality_score, stats, sample_media_url } = templateData;
     
     // safe stringify
     let structureStr;
@@ -17,8 +17,8 @@ export const TemplateModel = {
     const statsStr = (typeof stats === 'object') ? JSON.stringify(stats) : stats || null;
 
     const query = `
-      INSERT INTO templates (name, language, category, structure, status, meta_id, rejection_reason, quality_score, stats)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO templates (name, language, category, structure, status, meta_id, rejection_reason, quality_score, stats, sample_media_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -30,7 +30,8 @@ export const TemplateModel = {
       meta_id || null,
       rejection_reason || null,
       qualityScoreStr,
-      statsStr
+      statsStr,
+      sample_media_url || null
     ];
     
     console.log("DB Insert Debug:", values);

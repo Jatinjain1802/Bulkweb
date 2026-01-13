@@ -2,12 +2,37 @@ import db from '../config/db.js';
 
 export const WhatsappMessageModel = {
   create: async (data) => {
-    const { wamid, template_id, template_name, category, recipient, status, campaign_id } = data;
+    const { wamid, template_id, template_name, category, recipient, status, campaign_id, content, message_type, direction } = data;
     const [result] = await db.execute(
       `INSERT INTO whatsapp_messages 
-       (wamid, template_id, template_name, category, recipient, status, sent_at, campaign_id)
-       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?)`,
-      [wamid, template_id, template_name, category, recipient, status || 'sent', campaign_id || null]
+       (wamid, template_id, template_name, category, recipient, status, sent_at, campaign_id, content, message_type, direction)
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)`,
+      [
+        wamid, 
+        template_id || null, 
+        template_name || null, 
+        category || null, 
+        recipient, 
+        status || 'sent', 
+        campaign_id || null, 
+        content || null, 
+        message_type || 'text', 
+        direction || 'outbound'
+      ]
+    );
+    return result.insertId;
+  },
+
+  saveIncoming: async (data) => {
+    const { wamid, from, content, message_type, timestamp } = data;
+    // timestamp is unix from Meta
+    const sentAt = timestamp ? new Date(timestamp * 1000) : new Date();
+
+    const [result] = await db.execute(
+      `INSERT INTO whatsapp_messages 
+       (wamid, recipient, content, message_type, direction, status, sent_at, delivered_at)
+       VALUES (?, ?, ?, ?, 'inbound', 'delivered', ?, ?)`,
+      [wamid, from, content, message_type || 'text', sentAt, sentAt]
     );
     return result.insertId;
   },

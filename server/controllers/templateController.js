@@ -135,9 +135,26 @@ export const createTemplate = async (req, res) => {
     }
 
     // Handle File Upload for Header (IMAGE/VIDEO/DOC)
+    let sampleMediaUrl = null;
     if (req.file && req.body.headerType === 'media') {
         try {
+            // 1. Upload to Meta
             const handle = await uploadToMeta(req.file);
+            
+            // 2. Save Locally
+            const fs = await import('fs');
+            const path = await import('path');
+            const uniqueName = Date.now() + '-' + req.file.originalname.replace(/\s+/g, '_');
+            const uploadPath = path.join(process.cwd(), 'uploads', 'templates', uniqueName);
+            
+            // Ensure dir exists (though we made it via command, good to be safe)
+            if (!fs.existsSync(path.join(process.cwd(), 'uploads', 'templates'))) {
+                fs.mkdirSync(path.join(process.cwd(), 'uploads', 'templates'), { recursive: true });
+            }
+            
+            fs.writeFileSync(uploadPath, req.file.buffer);
+            sampleMediaUrl = 'uploads/templates/' + uniqueName;
+            
             let headerType = 'IMAGE';
             if (req.file.mimetype.startsWith('video')) headerType = 'VIDEO';
             else if (req.file.mimetype === 'application/pdf') headerType = 'DOCUMENT';
@@ -187,7 +204,8 @@ export const createTemplate = async (req, res) => {
       language,
       category: metaCategory,
       structure: metaComponents,
-      status: 'local_pending'
+      status: 'local_pending',
+      sample_media_url: sampleMediaUrl
     });
 
     // 2. Call Meta API

@@ -7,6 +7,7 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 
 import authRoutes from './routes/authRoutes.js';
@@ -20,9 +21,12 @@ app.get("/", (req, res) => {
 
 import campaignRoutes from './routes/campaignRoutes.js';
 
+import chatRoutes from './routes/chatRoutes.js';
+
 app.use('/api/auth', authRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/reports', reportRoutes);
 app.use('/webhook', webhookRoutes);
 
