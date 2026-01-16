@@ -745,14 +745,6 @@ const CreateTemplate = () => {
           </div>
         </div>
       </div>
-
-      <div className="mt-8">
-        <TemplateList
-          templates={templates}
-          onRefresh={fetchTemplates}
-        />
-      </div>
-
     </div >
   );
 };

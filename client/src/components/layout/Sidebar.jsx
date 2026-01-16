@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FilePlus, Megaphone, MessageSquare, LogOut, Users, TrendingUp, Map, ChevronDown } from 'lucide-react';
 import VaataLogo from '../../assets/img/Vaata-logo.png';
+import { AnimatePresence, motion } from "framer-motion";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -9,10 +10,22 @@ const Sidebar = () => {
   const [openMenu, setOpenMenu] = useState(""); // Track open submenu
   const [activeItem, setActiveItem] = useState(""); // Track active/highlighted item
 
-  // Get user data
-  const userData = JSON.parse(localStorage.getItem("data")) || {};
+  // Get user data from localStorage (saved during login)
+  const userData = JSON.parse(localStorage.getItem("user")) || {};
   const userRole = userData.role ? userData.role.toLowerCase().replace(/\s/g, "") : "";
   const accessibleModules = userData.accessible_modules || [];
+  const userName = userData.name || userData.username || "User";
+  const userEmail = userData.email || "";
+
+  // Get user initials for avatar
+  const getUserInitials = (name) => {
+    if (!name) return "U";
+    const names = name.trim().split(" ");
+    if (names.length >= 2) {
+      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   // Auto-close submenu when navigating away from its items
   useEffect(() => {
@@ -68,7 +81,7 @@ const Sidebar = () => {
 
   // Original menu configuration
   const menuItems = [
-    { path: '/dashboard/summary', label: 'Summary', icon: LayoutDashboard, module: 'dashboard' },
+    { path: '/dashboard/summary', label: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
     {
       label: 'Template Management',
       icon: FilePlus,
@@ -166,22 +179,31 @@ const Sidebar = () => {
                     />
                   </button>
 
-                  {isOpen && (
-                    <div className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3">
-                      {item.submenu.map(
-                        (sub) =>
-                          hasAccess(sub.module) && (
-                            <NavLink
-                              key={sub.path}
-                              to={sub.path}
-                              className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
-                            >
-                              {sub.label}
-                            </NavLink>
-                          )
-                      )}
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3 overflow-hidden"
+                      >
+                        {item.submenu.map(
+                          (sub) =>
+                            hasAccess(sub.module) && (
+                              <NavLink
+                                key={sub.path}
+                                to={sub.path}
+                                className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
+                              >
+                                {sub.label}
+                              </NavLink>
+                            )
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                 </div>
               );
             }
@@ -228,22 +250,31 @@ const Sidebar = () => {
                     />
                   </button>
 
-                  {isOpen && (
-                    <div className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3">
-                      {item.submenu.map(
-                        (sub) =>
-                          hasAccess(sub.module) && (
-                            <NavLink
-                              key={sub.path}
-                              to={sub.path}
-                              className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
-                            >
-                              {sub.label}
-                            </NavLink>
-                          )
-                      )}
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3 overflow-hidden"
+                      >
+                        {item.submenu.map(
+                          (sub) =>
+                            hasAccess(sub.module) && (
+                              <NavLink
+                                key={sub.path}
+                                to={sub.path}
+                                className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
+                              >
+                                {sub.label}
+                              </NavLink>
+                            )
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                 </div>
               );
             }
@@ -291,22 +322,31 @@ const Sidebar = () => {
                     />
                   </button>
 
-                  {isOpen && (
-                    <div className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3">
-                      {item.submenu.map(
-                        (sub) =>
-                          hasAccess(sub.module) && (
-                            <NavLink
-                              key={sub.path}
-                              to={sub.path}
-                              className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
-                            >
-                              {sub.label}
-                            </NavLink>
-                          )
-                      )}
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3 overflow-hidden"
+                      >
+                        {item.submenu.map(
+                          (sub) =>
+                            hasAccess(sub.module) && (
+                              <NavLink
+                                key={sub.path}
+                                to={sub.path}
+                                className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
+                              >
+                                {sub.label}
+                              </NavLink>
+                            )
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                 </div>
               );
             }
@@ -320,11 +360,11 @@ const Sidebar = () => {
         <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md" style={{ background: 'linear-gradient(to top right, #e87722, #ef4444)' }}>
-              JD
+              {getUserInitials(userName)}
             </div>
             <div className="flex-1 overflow-hidden">
-              <h4 className="text-sm font-semibold truncate">John Doe</h4>
-              <p className="text-xs text-gray-400 truncate">Admin Account</p>
+              <h4 className="text-sm font-semibold truncate">{userName}</h4>
+              <p className="text-xs text-gray-400 truncate">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'User'}</p>
             </div>
           </div>
         </div>
