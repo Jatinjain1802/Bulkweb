@@ -1,53 +1,47 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Delete", cancelText = "Cancel", isDanger = false }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isLoading }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200">
-      <div 
-        className="bg-white rounded-xl shadow-2xl w-[90%] max-w-[400px] p-6 transform transition-all scale-100 animate-in zoom-in-95 duration-200"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-lg font-semibold text-[#111b21]">
-            {title}
-          </h3>
-          <button 
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md transform transition-all scale-100 opacity-100">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          <button
             onClick={onClose}
-            className="text-[#54656f] hover:bg-[#f0f2f5] p-1 rounded-full transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <div className="mb-8">
-          <p className="text-[#3b4a54] text-[15px] leading-relaxed">
-            {message}
-          </p>
+        <div className="p-6">
+          <p className="text-gray-600 leading-relaxed">{message}</p>
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex items-center justify-end gap-3 p-4 bg-gray-50 rounded-b-lg">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-[#00a884] text-[14px] font-medium hover:bg-[#f0f2f5] rounded-full transition-colors border border-[#e9edef]"
+            disabled={isLoading}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
           >
-            {cancelText}
+            Cancel
           </button>
           <button
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-            className={`px-6 py-2 text-[14px] font-medium text-white rounded-full shadow-sm transition-all hover:shadow-md ${
-              isDanger 
-                ? "bg-[#ef4444] hover:bg-[#dc2626]" 
-                : "bg-[#00a884] hover:bg-[#008f6f]"
-            }`}
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all flex items-center gap-2"
           >
-            {confirmText}
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
           </button>
         </div>
       </div>

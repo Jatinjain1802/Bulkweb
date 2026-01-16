@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
 import RightPanel from "./RightPanel";
+import ConfirmationModal from "../../components/ConfirmationModal";
+import toast, { Toaster } from "react-hot-toast";
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
@@ -9,6 +11,12 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [showRightPanel, setShowRightPanel] = useState(false);
+
+  // Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [phonesToDelete, setPhonesToDelete] = useState([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteCallback, setDeleteCallback] = useState(null);
 
   // Fetch Conversations
   useEffect(() => {
@@ -92,12 +100,62 @@ const Chat = () => {
       fetchConversations(); // Update "last message" in sidebar
     } catch (error) {
       console.error("Error sending message:", error);
+      toast.error("Failed to send message");
+    }
+  };
+
+  const requestDeleteConversation = (phoneNumbers, onSuccess) => {
+    setPhonesToDelete(phoneNumbers);
+    setDeleteCallback(() => onSuccess);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteConversation = async () => {
+    if (!phonesToDelete.length) return;
+    
+    setIsDeleting(true);
+    try {
+      await fetch("http://localhost:5000/api/chat/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumbers: phonesToDelete }),
+      });
+      
+      // If active chat is deleted, close it
+      if (activeChat && phonesToDelete.includes(activeChat.phoneNumber)) {
+        setActiveChat(null);
+        setMessages([]);
+      }
+      
+      await fetchConversations();
+      toast.success("Deleted successfully");
+      
+      if (deleteCallback) {
+        deleteCallback();
+      }
+    } catch (error) {
+      console.error("Error deleting conversations:", error);
+      toast.error("Failed to delete chat");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+      setPhonesToDelete([]);
+      setDeleteCallback(null);
     }
   };
 
   return (
     <div className="flex h-[calc(100vh-20px)] relative overflow-hidden font-sans"> 
-      
+      <Toaster position="top-right" />
+      <ConfirmationModal 
+         isOpen={isDeleteModalOpen}
+         onClose={() => setIsDeleteModalOpen(false)}
+         onConfirm={confirmDeleteConversation}
+         title="Delete Chat?"
+         message={`Are you sure you want to delete ${phonesToDelete.length > 1 ? 'these chats' : 'this chat'}? This action cannot be undone.`}
+         isLoading={isDeleting}
+      />
+
       {/* Green Header Strip */}
       <div className="absolute top-0 w-full h-32 z-0"></div>
 
@@ -108,6 +166,7 @@ const Chat = () => {
           conversations={conversations}
           activeChat={activeChat}
           setActiveChat={setActiveChat}
+          onDeleteConversation={requestDeleteConversation}
         />
 
         <ChatWindow
@@ -117,6 +176,7 @@ const Chat = () => {
           setInput={setInput}
           onSend={handleSendMessage}
           onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
+          onDeleteConversation={requestDeleteConversation}
         />
 
         {showRightPanel && activeChat && (

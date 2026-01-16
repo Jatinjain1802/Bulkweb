@@ -81,6 +81,47 @@ export const sendChatMessage = async (req, res) => {
     }
 }
 
+export const deleteConversations = async (req, res) => {
+  const { phoneNumbers } = req.body; // Expect an array of phone numbers
+  
+  if (!phoneNumbers || !Array.isArray(phoneNumbers) || phoneNumbers.length === 0) {
+    return res.status(400).json({ error: "Invalid request. Provide an array of phone numbers." });
+  }
+
+  try {
+    console.log("Deleting conversations for:", phoneNumbers);
+
+    // Normalize numbers: strip non-digits to handle '+123' vs '123'
+    // We will delete any recipient that, when keys/symbols are stripped, matches the requested numbers.
+    // However, purely stripping might be aggressive (e.g. colliding shortcodes). 
+    // Safer approach: For each number `X`, delete `X` AND `+X` (if X doesn't have +) OR `X` without + (if it does).
+    
+    // Let's generate a flat list of all variations to delete
+    const variations = new Set();
+    phoneNumbers.forEach(num => {
+        variations.add(num);
+        if (num.startsWith('+')) {
+            variations.add(num.slice(1)); // Remove +
+        } else {
+            variations.add(`+${num}`); // Add +
+        }
+    });
+
+    const targets = Array.from(variations);
+    const placeholders = targets.map(() => '?').join(',');
+
+    const query = `DELETE FROM whatsapp_messages WHERE recipient IN (${placeholders})`;
+    
+    const [result] = await db.execute(query, targets);
+    console.log(`Deleted ${result.affectedRows} messages.`);
+    
+    res.json({ success: true, message: "Conversations deleted successfully", affected: result.affectedRows });
+  } catch (error) {
+    console.error("Error deleting conversations:", error);
+    res.status(500).json({ error: "Failed to delete conversations" });
+  }
+};
+
 export const markMessagesAsRead = async (req, res) => {
   const { phoneNumber } = req.params;
   try {

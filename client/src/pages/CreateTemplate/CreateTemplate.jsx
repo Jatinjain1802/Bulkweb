@@ -336,10 +336,16 @@ const CreateTemplate = () => {
             </span>
           </li>
 
-          <li className="flex gap-2 md:col-span-2">
+          <li className="flex gap-2">
             <span className="font-bold text-slate-700">•</span>
             <span>
               <b className="text-slate-700">Buttons:</b> URLs must be valid & phone numbers must include country code.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-bold text-slate-700">•</span>
+            <span>
+              <b className="text-slate-700">Remember:</b> No variable can be at last position.
             </span>
           </li>
         </ul>

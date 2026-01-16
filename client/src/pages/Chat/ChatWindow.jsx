@@ -9,6 +9,7 @@ const ChatWindow = ({
   setInput,
   onSend,
   onToggleRightPanel,
+  onDeleteConversation, 
 }) => {
   if (!activeChat) {
     return (
@@ -37,6 +38,7 @@ const ChatWindow = ({
         <ChatHeader
           activeChat={activeChat}
           onToggleRightPanel={onToggleRightPanel}
+          onDeleteChat={() => onDeleteConversation([activeChat.phoneNumber], () => {})}
         />
       </div>
 

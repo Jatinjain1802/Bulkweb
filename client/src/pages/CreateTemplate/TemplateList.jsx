@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MoreHorizontal, RefreshCcw, CheckCircle, XCircle, Trash2, Eye, MessageCircle, LayoutGrid, LayoutList, ChevronDown } from 'lucide-react';
+import { Search, MoreHorizontal, RefreshCcw, CheckCircle, XCircle, Trash2, Eye, MessageCircle, LayoutGrid, LayoutList, ChevronDown, Calendar } from 'lucide-react';
+import DatePicker from '../../components/DatePicker';
 
 const TemplateList = ({ templates: propTemplates, loading: propLoading, onRefresh: propOnRefresh }) => {
     const [internalTemplates, setInternalTemplates] = useState([]);
@@ -46,8 +47,12 @@ const TemplateList = ({ templates: propTemplates, loading: propLoading, onRefres
             // Date Filter
             let matchesDate = true;
             if (filterDate) {
-                const templateDate = new Date(template.created_at).toISOString().split('T')[0];
-                matchesDate = templateDate === filterDate;
+                const d = new Date(template.created_at);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const localDate = `${year}-${month}-${day}`;
+                matchesDate = localDate === filterDate;
             }
 
             // Status Filter
@@ -89,6 +94,10 @@ const TemplateList = ({ templates: propTemplates, loading: propLoading, onRefres
     }, [isControlled]);
 
     const onRefresh = () => {
+        setFilterDate('');
+        setFilterStatus('');
+        setFilterCategory('');
+        setSearchQuery('');
         fetchTemplates();
     };
 
@@ -239,17 +248,11 @@ const TemplateList = ({ templates: propTemplates, loading: propLoading, onRefres
             {/* Filters */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 {/* Date Filter */}
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <RefreshCcw className="h-4 w-4 text-slate-400" />
-                    </div>
-                    <input
-                        type="date"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                    />
-                </div>
+                <DatePicker 
+                    value={filterDate} 
+                    onChange={setFilterDate} 
+                    placeholder="Filter by Date" 
+                />
 
                 {/* Status Filter */}
                 <div className="relative">

@@ -9,13 +9,35 @@ const Sidebar = () => {
   const location = useLocation();
   const [openMenu, setOpenMenu] = useState(""); // Track open submenu
   const [activeItem, setActiveItem] = useState(""); // Track active/highlighted item
+  const [userProfile, setUserProfile] = useState({ name: 'User', role: 'Guest', initials: 'U' });
 
   // Get user data
   const userData = JSON.parse(localStorage.getItem("data")) || {};
   const userRole = userData.role ? userData.role.toLowerCase().replace(/\s/g, "") : "";
   const accessibleModules = userData.accessible_modules || [];
 
-  // Auto-close submenu when navigating away from its items
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        const name = user.name || user.email?.split('@')[0] || 'User';
+        const role = user.role || userData.role || 'User';
+        
+        let initials = 'U';
+        const nameParts = name.trim().split(' ');
+        if (nameParts.length === 1) {
+            initials = nameParts[0].substring(0, 2).toUpperCase();
+        } else if (nameParts.length > 1) {
+            initials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+        }
+        
+        setUserProfile({ name, role, initials });
+      } catch (e) {
+        console.error("Error parsing user data in Sidebar", e);
+      }
+    }
+  }, []);
   useEffect(() => {
     const menuItems = [
       {
@@ -348,11 +370,11 @@ const Sidebar = () => {
         <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md" style={{ background: 'linear-gradient(to top right, #e87722, #ef4444)' }}>
-              JD
+              {userProfile.initials}
             </div>
             <div className="flex-1 overflow-hidden">
-              <h4 className="text-sm font-semibold truncate">John Doe</h4>
-              <p className="text-xs text-gray-400 truncate">Admin Account</p>
+              <h4 className="text-sm font-semibold truncate text-white" title={userProfile.name}>{userProfile.name}</h4>
+              <p className="text-xs text-gray-400 truncate" title={userProfile.role}>{userProfile.role}</p>
             </div>
           </div>
         </div>

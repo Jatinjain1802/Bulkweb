@@ -1,24 +1,29 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
-import { MessageSquare, Megaphone, FilePlus, LayoutDashboard, MoreVertical, Users, TrendingUp, TrendingDown, ArrowUpRight, CheckCircle } from 'lucide-react';
+import { MessageSquare, Megaphone, FilePlus, LayoutDashboard, MoreVertical, Users, TrendingUp, TrendingDown, ArrowUpRight, CheckCircle, Calendar, Clock, XCircle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const timeRangeOptions = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
   { value: '7days', label: 'Last 7 Days' },
   { value: '30days', label: 'Last 30 Days' },
-  { value: 'month', label: 'This Month' }
+  { value: 'this_month', label: 'This Month' },
+  { value: 'this_year', label: 'This Year' },
+  { value: 'last_year', label: 'Last Year' }
 ];
 
 const customStyles = {
   control: (base, state) => ({
     ...base,
-    backgroundColor: '#f9fafb',
-    borderColor: state.isFocused ? '#6366f1' : 'transparent',
+    backgroundColor: '#fff',
+    borderColor: state.isFocused ? '#6366f1' : '#e2e8f0',
     borderRadius: '0.75rem',
     padding: '2px',
     boxShadow: state.isFocused ? '0 0 0 2px rgba(99, 102, 241, 0.2)' : 'none',
     '&:hover': { borderColor: '#6366f1' },
-    minWidth: '160px',
+    minWidth: '180px',
     fontSize: '0.875rem',
     fontWeight: 600,
     color: '#475569'
@@ -35,7 +40,9 @@ const customStyles = {
 };
 
 const Summary = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState(timeRangeOptions[2]); // Default: Last 7 Days
   const [stats, setStats] = useState({
     metrics: {
       totalMessages: 0,
@@ -49,6 +56,30 @@ const Summary = () => {
 
   const [userName, setUserName] = useState('User');
 
+  // Activity Modal State
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [allActivities, setAllActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  const fetchAllActivities = async () => {
+    setLoadingActivities(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/dashboard/activities');
+      if (!res.ok) throw new Error('Failed to fetch activities');
+      const data = await res.json();
+      setAllActivities(data);
+    } catch (error) {
+      console.error("Activity fetch error:", error);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
+  const openActivityModal = () => {
+    setIsActivityModalOpen(true);
+    fetchAllActivities();
+  };
+
   useEffect(() => {
     // Get user from local storage
     const userStr = localStorage.getItem('user');
@@ -60,10 +91,13 @@ const Summary = () => {
         console.error("Error parsing user", e);
       }
     }
+  }, []);
 
+  useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/dashboard/summary');
+        setLoading(true);
+        const res = await fetch(`http://localhost:5000/api/dashboard/summary?timeframe=${timeRange.value}`);
         if (!res.ok) throw new Error('Failed to fetch summary');
         const data = await res.json();
         setStats(data);
@@ -75,11 +109,10 @@ const Summary = () => {
     };
 
     fetchData();
-  }, []);
+  }, [timeRange]);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  const maxChartValue = Math.max(...(stats.chartData?.map(d => d.sent) || [0]), 10);
-
+  
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -113,12 +146,140 @@ const Summary = () => {
     return null;
   };
 
-  if (loading) {
-     return <div className="flex items-center justify-center p-20 text-slate-400">Loading dashboard...</div>;
-  }
-
   return (
     <div className="space-y-8 animate-fade-in-up">
+      {/* Activity Modal */}
+      {isActivityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+            {/* Modal Container */}
+          <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-white/20 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 relative">
+            
+            {/* Decorative Background Patterns */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-50/50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
+
+            {/* Modal Header */}
+            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-xl z-20">
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                    <Calendar className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Activity Timeline</h2>
+                    <p className="text-sm text-slate-500 font-medium">History of all campaigns & updates</p>
+                 </div>
+              </div>
+              <button 
+                onClick={() => setIsActivityModalOpen(false)}
+                className="group p-2.5 hover:bg-slate-50 rounded-full text-slate-400 hover:text-slate-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-200 border border-transparent hover:border-slate-200"
+              >
+                 <XCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="p-0 overflow-y-auto flex-1 custom-scrollbar scroll-smooth relative z-10 bg-slate-50/30">
+              {loadingActivities ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4 min-h-[400px]">
+                   <div className="animate-spin rounded-full h-10 w-10 border-[3px] border-indigo-600 border-t-transparent shadow-lg shadow-indigo-100"></div>
+                   <p className="text-slate-500 font-medium animate-pulse text-sm">Fetching latest updates...</p>
+                </div>
+              ) : allActivities.length > 0 ? (
+                <div className="relative p-8 space-y-2">
+                  {/* Timeline Track */}
+                  <div className="absolute left-[54px] top-8 bottom-8 w-[2px] bg-indigo-100/50 rounded-full" />
+
+                  {allActivities.map((item, i) => {
+                      const status = item.status?.toLowerCase() || 'default';
+                      let StatusIcon = Megaphone;
+                      let statusStyles = 'bg-white text-indigo-600 border-indigo-100';
+                      let dateBg = 'bg-indigo-50 text-indigo-600';
+                      
+                      if (status === 'completed') { 
+                          StatusIcon = CheckCircle; 
+                          statusStyles = 'bg-white text-emerald-600 border-emerald-100 shadow-emerald-100';
+                          dateBg = 'bg-emerald-50 text-emerald-700'; 
+                      } else if (status === 'failed') { 
+                          StatusIcon = XCircle; 
+                          statusStyles = 'bg-white text-red-600 border-red-100 shadow-red-100';
+                          dateBg = 'bg-red-50 text-red-700';
+                      } else if (status === 'scheduled') { 
+                          StatusIcon = Clock; 
+                          statusStyles = 'bg-white text-amber-500 border-amber-100 shadow-amber-100';
+                          dateBg = 'bg-amber-50 text-amber-700';
+                      }
+                      
+                      return (
+                        <div key={i} className="relative pl-20 py-2 group">
+                           {/* Icon Node */}
+                           <div className={`absolute left-7 top-4 w-10 h-10 rounded-full border-[3px] shadow-sm flex items-center justify-center z-10 transition-all duration-300 group-hover:scale-110 ${statusStyles} group-hover:shadow-md`}>
+                                <StatusIcon className="w-5 h-5 stroke-[2.5]" />
+                           </div>
+
+                           {/* Card */}
+                           <div className="bg-white border boundary-transparent hover:border-indigo-100 rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_4px_20px_-4px_rgba(99,102,241,0.1)] group-hover:-translate-x-1 cursor-default">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-1.5">
+                                            <h3 className="text-base font-bold text-slate-800">
+                                                {item.name || 'Untitled Campaign'}
+                                            </h3>
+                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${dateBg} bg-opacity-40`}>
+                                                {item.status}
+                                            </span>
+                                        </div>
+                                        {item.templateName && (
+                                            <p className="text-sm text-slate-500 flex items-center gap-2">
+                                                <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 hover:bg-slate-100 transition-colors">
+                                                    <FilePlus className="w-3.5 h-3.5 text-slate-400" />
+                                                    <span className="text-xs font-semibold text-slate-600 truncate max-w-[200px]">{item.templateName}</span>
+                                                </span>
+                                            </p>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Date & Time */}
+                                    <div className="flex flex-col items-end gap-1 min-w-fit pl-4 border-l border-slate-100">
+                                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                            {new Date(item.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                        </span>
+                                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">
+                                            {new Date(item.time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                </div>
+                           </div>
+                        </div>
+                      );
+                  })}
+                  
+                  {/* End of Timeline Dot */}
+                  <div className="absolute left-[51px] bottom-0 w-3 h-3 bg-slate-200 rounded-full ring-4 ring-white" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-32 text-slate-400 opacity-60">
+                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4 inner-shadow">
+                        <LayoutDashboard className="w-10 h-10 text-slate-300" />
+                    </div>
+                    <p className="font-semibold text-lg">No activity history yet.</p>
+                    <p className="text-sm">Start a campaign to see it here!</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 bg-white/80 backdrop-blur z-20 flex justify-between items-center text-xs font-medium text-slate-500">
+               <span>
+                  Showing {allActivities.length} total entries
+               </span>
+               <button onClick={() => setIsActivityModalOpen(false)} className="px-4 py-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-600 hover:text-slate-900">
+                  Close
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== WELCOME HEADER ===== */}
       <div
         className="card mb-6"
@@ -126,11 +287,11 @@ const Summary = () => {
           background: "#fff",
           borderRadius: "20px",
           border: "1px solid #e5e7eb",
-          overflow: "hidden",
+          overflow: "visible", // Allowed overflow for Select dropdown
         }}
       >
         <div className="border-slate-200 p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
   
             {/* LEFT */}
             <div>
@@ -139,16 +300,15 @@ const Summary = () => {
                   ☀️
                 </div>
   
-                <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 leading-tight">
-                  Welcome back, {userName}! 👋
-                </h1>
+                <div>
+                   <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 leading-tight">
+                    Welcome back, {userName}! 👋
+                   </h1>
+                   <p className="text-sm text-slate-500 mt-1 font-medium">{today}</p>
+                </div>
               </div>
   
-              <p className="text-sm text-slate-500 mb-2">
-                {today}
-              </p>
-  
-              <p className="text-slate-600 text-base max-w-2xl">
+              <p className="text-slate-600 text-base max-w-2xl mt-4">
                 Here's what's happening with your campaigns today.
                 You have{" "}
                 <span className="font-semibold text-slate-900">
@@ -158,36 +318,25 @@ const Summary = () => {
               </p>
             </div>
   
-            {/* RIGHT */}
-            <div className="flex flex-col gap-5 min-w-[460px]">
-  
-              {/* SMALL STATS */}
-              <div className="flex gap-4">
-                {[
-                  { label: "Total Msgs", value: stats.metrics?.totalMessages, icon: "📤" },
-                  { label: "Contacts", value: stats.metrics?.totalContacts, icon: "👥" },
-                  { label: "Templates", value: stats.metrics?.templatesCreated, icon: "📄" },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 border border-slate-200 rounded-2xl px-4 py-3 bg-white w-full"
-                  >
-                    <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-lg">
-                      {item.icon}
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500 leading-none">
-                        {item.label}
-                      </p>
-                      <p className="text-xl font-bold text-slate-900 leading-tight">
-                        {item.value}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+            {/* RIGHT - Global Filter */}
+            <div className="flex flex-col items-end gap-5 min-w-[300px]">
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-slate-500">Time Range:</span>
+                    <Select
+                        options={timeRangeOptions}
+                        value={timeRange}
+                        onChange={setTimeRange}
+                        styles={customStyles}
+                        isSearchable={false}
+                        components={{ IndicatorSeparator: () => null }}
+                        menuPlacement="auto"
+                    />
+                </div>
+
+                {/* SMALL STATS SHORTCUTS */}
+              <div className="flex gap-4 w-full justify-end">
+                 {/*  Shortcuts removed or simplified to fit design better if needed, but keeping primarily as per request */}
               </div>
-  
-              
             </div>
           </div>
         </div>
@@ -196,20 +345,21 @@ const Summary = () => {
       {/* ===== METRICS GRID ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { title: 'Total Messages', value: stats.metrics?.totalMessages?.toLocaleString(), change: '+0%', icon: MessageSquare, color: 'blue' },
-          { title: 'Active Campaigns', value: stats.metrics?.activeCampaigns, change: '+0%', icon: Megaphone, color: 'green' },
-          { title: 'Templates Created', value: stats.metrics?.templatesCreated, change: '+0%', icon: FilePlus, color: 'purple' },
-          { title: 'Total Contacts', value: stats.metrics?.totalContacts?.toLocaleString(), change: '+0%', icon: Users, color: 'orange' }
+          { title: 'Total Messages', value: stats.metrics?.totalMessages?.toLocaleString(), change: '+0%', icon: MessageSquare, color: 'blue', path: '/dashboard/create-campaign' },
+          { title: 'Active Campaigns', value: stats.metrics?.activeCampaigns, change: '+0%', icon: Megaphone, color: 'green', path: '/dashboard/create-campaign' },
+          { title: 'Templates Created', value: stats.metrics?.templatesCreated, change: '+0%', icon: FilePlus, color: 'purple', path: '/dashboard/template-list' },
+          { title: 'Total Contacts', value: stats.metrics?.totalContacts?.toLocaleString(), change: '+0%', icon: Users, color: 'orange', path: '/dashboard/create-campaign' }
         ].map((stat, i) => (
           <div
             key={i}
+            onClick={() => stat.path && navigate(stat.path)}
             className="relative bg-white rounded-2xl border border-slate-200 p-6 overflow-hidden
                    transition-all duration-300 cursor-pointer
-                   hover:-translate-y-1 hover:shadow-xl hover:border-slate-300"
+                   hover:-translate-y-1 hover:shadow-xl hover:border-slate-300 group"
           >
             {/* soft corner glow */}
             <div
-              className={`absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br
+              className={`absolute -top-10 -right-10 w-32 h-32 rounded-full bg-linear-to-br
             ${stat.color === 'blue' ? 'from-blue-100' :
                   stat.color === 'green' ? 'from-emerald-100' :
                     stat.color === 'purple' ? 'from-purple-100' :
@@ -241,7 +391,7 @@ const Summary = () => {
             </span>
   
             {/* content */}
-            <p className="text-sm font-medium text-slate-500 mb-1">
+            <p className="text-sm font-medium text-slate-500 mb-1 group-hover:text-slate-700 transition-colors">
               {stat.title}
             </p>
   
@@ -259,15 +409,9 @@ const Summary = () => {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-xl font-bold text-slate-800">Campaign Performance</h3>
-              <p className="text-sm text-slate-500 mt-1">Message delivery trends & volume</p>
+              <p className="text-sm text-slate-500 mt-1">Message delivery volume & trends</p>
             </div>
-             <Select
-              options={timeRangeOptions}
-              defaultValue={timeRangeOptions[0]}
-              styles={customStyles}
-              isSearchable={false}
-              components={{ IndicatorSeparator: () => null }}
-            />
+            {/* Select removed from here as it is now global */}
           </div>
 
           {/* Quick Summary Pills for the Chart Context */}
@@ -279,7 +423,7 @@ const Summary = () => {
                  <div>
                     <p className="text-xs text-indigo-600 font-semibold uppercase tracking-wider">Total Sent</p>
                     <p className="text-lg font-bold text-slate-800">
-                        {stats.chartData.reduce((acc, curr) => acc + (curr.sent || 0), 0).toLocaleString()}
+                        {loading ? '...' : stats.chartData.reduce((acc, curr) => acc + (curr.sent || 0), 0).toLocaleString()}
                     </p>
                  </div>
               </div>
@@ -303,64 +447,72 @@ const Summary = () => {
   
           {/* Recharts Area Chart */}
           <div className="flex-1 min-h-[350px] px-2 pb-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.chartData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorDelivered" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="label" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                />
-                <RechartsTooltip 
-                  content={<CustomTooltip />}
-                  cursor={{ stroke: '#e2e8f0', strokeWidth: 2 }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                <Area 
-                  type="monotone" 
-                  dataKey="sent" 
-                  stroke="#6366f1" 
-                  strokeWidth={3} 
-                  fillOpacity={1} 
-                  fill="url(#colorSent)" 
-                  name="Sent"
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="delivered" 
-                  stroke="#10b981" 
-                  strokeWidth={3} 
-                  fillOpacity={1} 
-                  fill="url(#colorDelivered)" 
-                  name="Delivered"
-                />
-                <Area 
+             {loading ? (
+                <div className="h-full flex items-center justify-center text-slate-400">Loading chart data...</div>
+             ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stats.chartData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
+                    <defs>
+                    <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorDelivered" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                    dataKey="label" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                    dy={10}
+                    interval={stats.chartData.length > 30 ? 'preserveStartEnd' : 0} 
+                    />
+                    <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                    />
+                    <RechartsTooltip 
+                    content={<CustomTooltip />}
+                    cursor={{ stroke: '#e2e8f0', strokeWidth: 2 }}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                    <Area 
                     type="monotone" 
-                    dataKey="failed" 
-                    stroke="#ef4444" 
-                    strokeWidth={2} 
-                    fill="transparent" 
-                    name="Failed" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+                    dataKey="sent" 
+                    stroke="#6366f1" 
+                    strokeWidth={3} 
+                    fillOpacity={1} 
+                    fill="url(#colorSent)" 
+                    name="Sent"
+                    animationDuration={1000}
+                    />
+                    <Area 
+                    type="monotone" 
+                    dataKey="delivered" 
+                    stroke="#10b981" 
+                    strokeWidth={3} 
+                    fillOpacity={1} 
+                    fill="url(#colorDelivered)" 
+                    name="Delivered"
+                    animationDuration={1000}
+                    />
+                    <Area 
+                        type="monotone" 
+                        dataKey="failed" 
+                        stroke="#ef4444" 
+                        strokeWidth={2} 
+                        fill="transparent" 
+                        name="Failed" 
+                        animationDuration={1000}
+                    />
+                </AreaChart>
+                </ResponsiveContainer>
+             )}
           </div>
         </div>
   
@@ -424,7 +576,9 @@ const Summary = () => {
                     <div className="pl-10 text-sm text-slate-500">No recent activity</div>
                 )}
             </div>
-            <button className="w-full mt-8 py-3 rounded-xl border border-gray-200 text-slate-600 text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all">
+            <button 
+                onClick={openActivityModal}
+                className="w-full mt-8 py-3 rounded-xl border border-gray-200 text-slate-600 text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all">
                 View All Activity
             </button>
             </div>
