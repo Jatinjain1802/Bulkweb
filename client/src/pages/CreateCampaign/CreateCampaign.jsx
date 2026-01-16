@@ -462,9 +462,9 @@ const RecentCampaignsList = () => {
                                     {c.status}
                                 </span>
                             </td>
-                            <td className="px-4 py-3">{c.total_contacts}</td>
-                            <td className="px-4 py-3 text-green-600 font-semibold">{c.successful_sends}</td>
-                            <td className="px-4 py-3 text-red-600">{c.failed_sends}</td>
+                            <td className="px-4 py-3">{c.real_sent_count || 0}</td>
+                            <td className="px-4 py-3 text-green-600 font-semibold">{c.real_delivered_count || 0}</td>
+                            <td className="px-4 py-3 text-red-600">{c.real_failed_count || 0}</td>
                             <td className="px-4 py-3 text-slate-400 text-xs">
                                 {new Date(c.created_at).toLocaleDateString()}
                             </td>

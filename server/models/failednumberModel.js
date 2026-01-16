@@ -1,8 +1,8 @@
 import db from '../config/db.js';
 export const FailedNumber ={
-    add: async(phoneNumber,reason)=>{
-        const query = `INSERT IGNORE INTO failed_numbers (phone_number,reason)VALUES(?,?)`;
-        await db.execute(query,[phoneNumber,reason]);
+    add: async(phoneNumber, reason, campaignId, templateName)=>{
+        const query = `INSERT IGNORE INTO failed_numbers (phone_number, reason, campaign_id, template_name) VALUES (?, ?, ?, ?)`;
+        await db.execute(query,[phoneNumber, reason, campaignId, templateName]);
     },
     checkExists: async(phoneNumber)=>
     {

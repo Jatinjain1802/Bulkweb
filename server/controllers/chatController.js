@@ -80,3 +80,21 @@ export const sendChatMessage = async (req, res) => {
         res.status(500).json({ error: "Failed to send message" });
     }
 }
+
+export const markMessagesAsRead = async (req, res) => {
+  const { phoneNumber } = req.params;
+  try {
+    const query = `
+      UPDATE whatsapp_messages 
+      SET status = 'read' 
+      WHERE recipient = ? 
+        AND direction = 'inbound' 
+        AND status != 'read'
+    `;
+    await db.execute(query, [phoneNumber]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error marking messages as read:", error);
+    res.status(500).json({ error: "Failed to mark messages as read" });
+  }
+};

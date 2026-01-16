@@ -27,6 +27,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/chat', chatRoutes);
+import dashboardRoutes from './routes/dashboardRoutes.js';
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/reports', reportRoutes);
 app.use('/webhook', webhookRoutes);
 

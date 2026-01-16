@@ -82,7 +82,9 @@ const CampaignDetails = () => {
                 </div>
                 <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
                     <p className="text-xs text-purple-600 uppercase font-bold mb-1">Total Cost</p>
-                    <p className="text-2xl font-bold text-purple-700">₹{campaign.cost || '0.00'}</p>
+                    <p className="text-2xl font-bold text-purple-700">
+                        ₹{((campaign.realtime_stats?.delivered || 0) * 0.8631).toFixed(2)}
+                    </p>
                     <p className="text-[10px] text-purple-500">@ 0.8631/msg</p>
                 </div>
             </div>

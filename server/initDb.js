@@ -64,7 +64,6 @@ async function initDb() {
         status VARCHAR(50) DEFAULT 'draft',
         total_contacts INT DEFAULT 0,
         successful_sends INT DEFAULT 0,
-        successful_sends INT DEFAULT 0,
         failed_sends INT DEFAULT 0,
         cost DECIMAL(10, 4) DEFAULT 0.0000,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -121,6 +120,18 @@ async function initDb() {
     `;
     await connection.query(createFailedNumbersTable);
     console.log("Failed Numbers table ready.");
+
+    const [fnCampCol] = await connection.query("SHOW COLUMNS FROM failed_numbers LIKE 'campaign_id'");
+    if (fnCampCol.length === 0) {
+      await connection.query("ALTER TABLE failed_numbers ADD COLUMN campaign_id INT");
+      console.log("Added campaign_id to failed_numbers.");
+    }
+
+    const [fnTempCol] = await connection.query("SHOW COLUMNS FROM failed_numbers LIKE 'template_name'");
+    if (fnTempCol.length === 0) {
+      await connection.query("ALTER TABLE failed_numbers ADD COLUMN template_name VARCHAR(255)");
+      console.log("Added template_name to failed_numbers.");
+    }
     // Check for rejection_reason column
     const [columns] = await connection.query(`SHOW COLUMNS FROM templates LIKE 'rejection_reason'`);
     if (columns.length === 0) {
@@ -210,6 +221,13 @@ async function initDb() {
     if (directionCol.length === 0) {
       await connection.query(`ALTER TABLE whatsapp_messages ADD COLUMN direction VARCHAR(10) DEFAULT 'outbound'`);
       console.log("Added direction column to whatsapp_messages table.");
+    }
+    
+    // Check for media_url column
+    const [mediaUrlCol] = await connection.query(`SHOW COLUMNS FROM whatsapp_messages LIKE 'media_url'`);
+    if (mediaUrlCol.length === 0) {
+      await connection.query(`ALTER TABLE whatsapp_messages ADD COLUMN media_url TEXT`);
+      console.log("Added media_url column to whatsapp_messages table.");
     }
 
   } catch (error) {

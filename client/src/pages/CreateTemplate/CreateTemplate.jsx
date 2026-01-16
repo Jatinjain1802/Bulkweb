@@ -582,6 +582,62 @@ const CreateTemplate = () => {
                 />
               </div>
 
+              {/* Button Configuration */}
+              {formData.buttonType !== 'none' && (
+                <div className="md:col-span-2 space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                  {formData.buttons.map((btn, index) => (
+                    <div key={index} className="flex gap-3 items-start animate-fade-in">
+                      {formData.buttonType === 'call_to_action' && (
+                        <div className="w-32">
+                          <Select
+                            options={buttonTypeOptions}
+                            styles={customStyles}
+                            value={buttonTypeOptions.find(opt => opt.value === btn.type)}
+                            onChange={(option) => handleButtonChange(index, 'type', option.value)}
+                            isSearchable={false}
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Button Text"
+                          value={btn.text}
+                          onChange={(e) => handleButtonChange(index, 'text', e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:border-[#ff6900]"
+                        />
+                        {formData.buttonType === 'call_to_action' && (
+                          <input
+                            type="text"
+                            placeholder={btn.type === 'url' ? "https://example.com" : "+1234567890"}
+                            value={btn.value}
+                            onChange={(e) => handleButtonChange(index, 'value', e.target.value)}
+                            className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:border-[#ff6900]"
+                          />
+                        )}
+                      </div>
+                      <button
+                        onClick={() => removeButton(index)}
+                        className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {((formData.buttonType === 'quick_reply' && formData.buttons.length < 3) ||
+                    (formData.buttonType === 'call_to_action' && formData.buttons.length < 2)) && (
+                      <button
+                        type="button"
+                        onClick={addButton}
+                        className="text-sm font-medium text-[#ff6900] hover:text-[#e05d00] flex items-center gap-1.5 px-2 py-1"
+                      >
+                        <Plus className="w-4 h-4" /> Add Another Button
+                      </button>
+                    )}
+                </div>
+              )}
+
 
             </div>
 
@@ -689,8 +745,19 @@ const CreateTemplate = () => {
           </div>
         </div>
       </div>
+
+      <div className="mt-8">
+        <TemplateList
+          templates={templates}
+          onRefresh={fetchTemplates}
+        />
+      </div>
+
     </div >
   );
 };
 
 export default CreateTemplate;
+
+
+

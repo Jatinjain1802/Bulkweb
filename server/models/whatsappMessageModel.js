@@ -2,11 +2,11 @@ import db from '../config/db.js';
 
 export const WhatsappMessageModel = {
   create: async (data) => {
-    const { wamid, template_id, template_name, category, recipient, status, campaign_id, content, message_type, direction } = data;
+    const { wamid, template_id, template_name, category, recipient, status, campaign_id, content, message_type, direction, media_url } = data;
     const [result] = await db.execute(
       `INSERT INTO whatsapp_messages 
-       (wamid, template_id, template_name, category, recipient, status, sent_at, campaign_id, content, message_type, direction)
-       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)`,
+       (wamid, template_id, template_name, category, recipient, status, sent_at, campaign_id, content, message_type, direction, media_url)
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`,
       [
         wamid, 
         template_id || null, 
@@ -17,7 +17,8 @@ export const WhatsappMessageModel = {
         campaign_id || null, 
         content || null, 
         message_type || 'text', 
-        direction || 'outbound'
+        direction || 'outbound',
+        media_url || null
       ]
     );
     return result.insertId;

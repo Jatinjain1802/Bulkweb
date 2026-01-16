@@ -71,9 +71,15 @@ export const CampaignModel = {
   
   findAll: async () => {
       const [rows] = await db.execute(`
-        SELECT c.*, t.name as template_name 
+        SELECT c.*, 
+               t.name as template_name,
+               COUNT(wm.id) as real_sent_count,
+               SUM(CASE WHEN wm.delivered_at IS NOT NULL THEN 1 ELSE 0 END) as real_delivered_count,
+               SUM(CASE WHEN wm.status = 'failed' THEN 1 ELSE 0 END) as real_failed_count
         FROM campaigns c 
         LEFT JOIN templates t ON c.template_id = t.id 
+        LEFT JOIN whatsapp_messages wm ON c.id = wm.campaign_id
+        GROUP BY c.id
         ORDER BY c.created_at DESC
       `);
       return rows;

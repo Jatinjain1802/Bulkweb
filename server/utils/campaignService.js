@@ -86,6 +86,9 @@ export const processCampaign = async (campaignId) => {
                 }
 
                 // 2. Handle Header Parameters (Media)
+                let finalMediaUrl = null;
+                let finalMediaId = null;
+
                 if (hasMediaHeader) {
                     const headerParams = [];
                     const mediaType = headerComponent.format.toLowerCase(); // image, video, document
@@ -96,9 +99,6 @@ export const processCampaign = async (campaignId) => {
                     // Priority 2: Use Template's Saved Local Media (Best fallback)
                     let savedMediaUrl = null;
                     if (template.sample_media_url) {
-                         // Construct full public URL
-                         // Ideally use an ENV var for Base URL. 
-                         // Defaulting to ngrok or localhost if not set, but must be public for Meta!
                          const baseUrl = process.env.PUBLIC_URL || 'http://localhost:5000'; 
                          savedMediaUrl = `${baseUrl}/${template.sample_media_url}`;
                     }
@@ -107,16 +107,31 @@ export const processCampaign = async (campaignId) => {
                     const exampleHandle = headerComponent.example?.header_handle?.[0];
 
                     if (mappedUrl) {
+                        finalMediaUrl = mappedUrl;
+                        const mediaObj = { link: mappedUrl };
+                        // For documents, it's nice to send a filename
+                        if (mediaType === 'document') {
+                            const filename = mappedUrl.split('/').pop().split('?')[0] || 'document.pdf';
+                            mediaObj.filename = filename;
+                        }
                         headerParams.push({
                             type: mediaType,
-                            [mediaType]: { link: mappedUrl }
+                            [mediaType]: mediaObj
                         });
                     } else if (savedMediaUrl) {
+                        finalMediaUrl = savedMediaUrl;
+                         const mediaObj = { link: savedMediaUrl };
+                        if (mediaType === 'document') {
+                             // Extract filename from the local path if possible, or URL
+                             const filename = template.sample_media_url.split('/').pop() || 'document.pdf';
+                             mediaObj.filename = filename;
+                        }
                         headerParams.push({
                             type: mediaType,
-                            [mediaType]: { link: savedMediaUrl }
+                            [mediaType]: mediaObj
                         });
                     } else if (exampleHandle) {
+                        finalMediaId = exampleHandle;
                         headerParams.push({
                             type: mediaType,
                             [mediaType]: { id: exampleHandle }
@@ -138,6 +153,46 @@ export const processCampaign = async (campaignId) => {
                     components
                 );
 
+                // Reconstruct Message Content for DB (So it shows in Chat)
+                let fullContent = '';
+                
+                // 1. Header
+                if (headerComponent && headerComponent.format === 'TEXT') {
+                   fullContent += `*${headerComponent.text}*\n\n`;
+                } else if (hasMediaHeader && headerComponent.format) {
+                   if (headerComponent.format === 'DOCUMENT') {
+                       let filename = 'Document';
+                       if (finalMediaUrl) {
+                           filename = finalMediaUrl.split('/').pop().split('?')[0];
+                       } else if (finalMediaId) {
+                           filename = 'Overview.pdf'; // Fallback for handle
+                       }
+                       fullContent += `📄 ${filename}\n\n`;
+                   } else {
+                       fullContent += `[${headerComponent.format}]\n\n`;
+                   }
+                }
+
+                // 2. Body
+                const bodyComponent = templateStructure.find(c => c.type === 'BODY');
+                if (bodyComponent) {
+                    let bodyText = bodyComponent.text;
+                    // Replace {{1}}, {{2}}...
+                    // derived from 'parameters' array which maps to {{1}}, {{2}} in order
+                    parameters.forEach((param, index) => {
+                        // param is { type: "text", text: "..." }
+                        // Replace all occurrences of {{index+1}}
+                        bodyText = bodyText.replace(new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g'), param.text);
+                    });
+                    fullContent += bodyText;
+                }
+
+                // 3. Footer
+                const footerComponent = templateStructure.find(c => c.type === 'FOOTER');
+                if (footerComponent) {
+                    fullContent += `\n\n_${footerComponent.text}_`;
+                }
+
                 if (sentMsg?.id) {
                     await WhatsappMessageModel.create({
                         wamid: sentMsg.id,
@@ -146,7 +201,10 @@ export const processCampaign = async (campaignId) => {
                         category: template.category,
                         recipient: contact.phone_number,
                         status: 'sent',
-                        campaign_id: campaignId
+                        campaign_id: campaignId,
+                        content: fullContent,
+                        message_type: 'template',
+                        media_url: finalMediaUrl // Save the media URL
                     });
                     
                     // Update Log
@@ -160,7 +218,7 @@ export const processCampaign = async (campaignId) => {
                 console.error(`Failed to send to ${contact.phone_number}:`, err.message);
                 failCount++;
                 
-                await FailedNumber.add(contact.phone_number, err.message);
+                await FailedNumber.add(contact.phone_number, err.message, campaignId, template.name);
                 
                 // Update Log
                 await CampaignModel.updateLogStatus(contact.log_id, 'failed', null, err.message);
