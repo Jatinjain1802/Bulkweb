@@ -5,7 +5,7 @@ export const login = async (req, res) => {
 
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    
+
     if (rows.length === 0) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
@@ -27,7 +27,7 @@ export const login = async (req, res) => {
         name: user.name,
         role: user.role
       },
-      token: "dummy_jwt_token_" + user.id 
+      token: "dummy_jwt_token_" + user.id
     });
 
   } catch (error) {
