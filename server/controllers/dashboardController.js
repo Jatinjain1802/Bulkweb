@@ -45,6 +45,13 @@ export const getDashboardSummary = async (req, res) => {
             WHERE status IN ('processing', 'scheduled', 'running')
         `);
 
+        // 2b. Scheduled Campaigns (Snapshot)
+        const [scheduledCampaignCounts] = await db.execute(`
+            SELECT COUNT(*) as scheduled 
+            FROM campaigns 
+            WHERE status = 'scheduled'
+        `);
+
         // 3. Templates Created (Filtered)
         const [templateCounts] = await db.execute(`
             SELECT COUNT(*) as total FROM templates WHERE ${templateCondition}
@@ -223,6 +230,7 @@ export const getDashboardSummary = async (req, res) => {
             metrics: {
                 totalMessages: msgCounts[0].total,
                 activeCampaigns: campaignCounts[0].active,
+                scheduledCampaigns: scheduledCampaignCounts[0].scheduled,
                 templatesCreated: templateCounts[0].total,
                 totalContacts: contactCounts[0].total
             },

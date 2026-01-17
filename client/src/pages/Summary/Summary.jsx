@@ -47,6 +47,7 @@ const Summary = () => {
     metrics: {
       totalMessages: 0,
       activeCampaigns: 0,
+      scheduledCampaigns: 0,
       templatesCreated: 0,
       totalContacts: 0
     },
@@ -343,10 +344,11 @@ const Summary = () => {
       </div>
   
       {/* ===== METRICS GRID ===== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {[
           { title: 'Total Messages', value: stats.metrics?.totalMessages?.toLocaleString(), change: '+0%', icon: MessageSquare, color: 'blue', path: '/dashboard/create-campaign' },
           { title: 'Active Campaigns', value: stats.metrics?.activeCampaigns, change: '+0%', icon: Megaphone, color: 'green', path: '/dashboard/create-campaign' },
+          { title: 'Scheduled Campaigns', value: stats.metrics?.scheduledCampaigns || 0, change: '+0%', icon: Calendar, color: 'indigo', path: '/dashboard/campaigns' },
           { title: 'Templates Created', value: stats.metrics?.templatesCreated, change: '+0%', icon: FilePlus, color: 'purple', path: '/dashboard/template-list' },
           { title: 'Total Contacts', value: stats.metrics?.totalContacts?.toLocaleString(), change: '+0%', icon: Users, color: 'orange', path: '/dashboard/create-campaign' }
         ].map((stat, i) => (
@@ -363,20 +365,22 @@ const Summary = () => {
             ${stat.color === 'blue' ? 'from-blue-100' :
                   stat.color === 'green' ? 'from-emerald-100' :
                     stat.color === 'purple' ? 'from-purple-100' :
-                      'from-orange-100'
+                      stat.color === 'indigo' ? 'from-indigo-100' :
+                        'from-orange-100'
                 } to-transparent`}
             />
   
             {/* icon bubble (right) */}
             <div
-              className={`absolute top-6 right-6 w-14 h-14 rounded-2xl flex items-center justify-center text-white
+              className={`absolute top-6 right-6 w-10 h-10 rounded-2xl flex items-center justify-center text-white
             ${stat.color === 'blue' ? 'bg-blue-500' :
                   stat.color === 'green' ? 'bg-emerald-500' :
                     stat.color === 'purple' ? 'bg-purple-500' :
-                      'bg-orange-500'
+                      stat.color === 'indigo' ? 'bg-indigo-500' :
+                        'bg-orange-500'
                 }`}
             >
-              <stat.icon className="w-6 h-6" />
+              <stat.icon className="w-4 h-4" />
             </div>
   
             {/* change badge */}
