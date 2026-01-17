@@ -409,52 +409,6 @@ const CreateCampaign = () => {
 
                 {/* Recent Campaigns Section - TODO: Create RecentCampaignsList component */}
             </div>
-
-            {/* Helper Sidebar */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit">
-
-
-                <h3 className="text-md font-bold text-slate-700 mb-4">Summary</h3>
-                <div className="space-y-3 mb-6">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Selected Template</span>
-                        <span className="font-medium text-slate-800">{selectedTemplate ? selectedTemplate.label : '-'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Total Uploaded</span>
-                        <span className="font-medium text-slate-800">{contacts.length}</span>
-                    </div>
-                    {stats.failed_previously > 0 && (
-                        <div className="flex justify-between text-sm text-red-600">
-                            <span>Failed Previously</span>
-                            <span className="font-medium">-{stats.failed_previously}</span>
-                        </div>
-                    )}
-                    <div className="flex justify-between text-sm border-t border-dashed pt-2">
-                        <span className="text-slate-700 font-bold">Valid Recipients</span>
-                        <span className="font-bold text-indigo-600">{stats.valid > 0 ? stats.valid : contacts.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Approx Cost</span>
-                        <span className="font-medium text-slate-800">₹{stats.estimated_cost}</span>
-                    </div>
-                </div>
-
-                <div className="bg-indigo-50 text-indigo-700 p-4 rounded-xl text-xs leading-relaxed flex gap-2">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                    <div>
-                        <strong>Tips:</strong>
-                        <ul className="list-disc list-inside mt-1 space-y-1">
-                            <li>Ensure phone numbers include country code (e.g., 919876543210).</li>
-                            <li>Map all variables found in the template to columns in your file.</li>
-                            <li>Campaigns are processed in the background.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            {/* Recent Campaigns Section */}
-
         </div>
     );
 }

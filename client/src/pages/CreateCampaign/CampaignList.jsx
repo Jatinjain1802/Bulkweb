@@ -83,10 +83,10 @@ const CampaignList = () => {
 
     // TODO: Implement Delete API if available
     const handleDelete = async (e, id) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         if (window.confirm("Are you sure you want to delete this campaign?")) {
             // Assuming this endpoint exists, or we might need to skip strict delete implementation if unknown
-             try {
+            try {
                 const res = await fetch(`http://localhost:5000/api/campaigns/${id}`, {
                     method: 'DELETE'
                 });
@@ -107,7 +107,7 @@ const CampaignList = () => {
     const getStatusBadge = (status) => {
         switch (String(status).toLowerCase()) {
             case 'completed': return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-600"><CheckCircle className="w-3.5 h-3.5" /> Completed</span>;
-            case 'processing': 
+            case 'processing':
             case 'sending':
                 return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600"><RefreshCcw className="w-3.5 h-3.5 animate-spin" /> Processing</span>;
             case 'scheduled':
@@ -123,7 +123,7 @@ const CampaignList = () => {
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-indigo-50 rounded-xl">
-                         <Megaphone className="w-6 h-6 text-indigo-600" />
+                        <Megaphone className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
                         <h3 className="text-xl font-bold text-slate-800">Your Campaigns</h3>
@@ -210,10 +210,10 @@ const CampaignList = () => {
             <div className="flex flex-wrap gap-4 mb-8 pb-6 border-b border-gray-100">
                 {/* Date Filter */}
                 <div className="w-full sm:w-auto">
-                   <DatePicker 
-                        value={filterDate} 
-                        onChange={setFilterDate} 
-                        placeholder="Filter by Date" 
+                    <DatePicker
+                        value={filterDate}
+                        onChange={setFilterDate}
+                        placeholder="Filter by Date"
                     />
                 </div>
 
@@ -254,96 +254,96 @@ const CampaignList = () => {
                         </div>
                     ) : (
                         filteredCampaigns.map((campaign) => (
-                                <div
-                                    key={campaign.id}
-                                    onClick={() => navigate(`/dashboard/campaigns/${campaign.id}`)}
-                                    className="relative bg-white border border-slate-200 rounded-2xl p-6
+                            <div
+                                key={campaign.id}
+                                onClick={() => navigate(`/dashboard/campaigns/${campaign.id}`)}
+                                className="relative bg-white border border-slate-200 rounded-2xl p-6
                             cursor-pointer transition-all duration-300
                             hover:-translate-y-1 hover:shadow-xl group"
-                                >
-                                    {/* Stats Summary Top */}
-                                    <div className="absolute top-0 right-0 p-6 opacity-30 group-hover:opacity-100 transition-opacity">
-                                        <ChevronDown className="-rotate-90 w-5 h-5 text-slate-400" />
+                            >
+                                {/* Stats Summary Top */}
+                                <div className="absolute top-0 right-0 p-6 opacity-30 group-hover:opacity-100 transition-opacity">
+                                    <ChevronDown className="-rotate-90 w-5 h-5 text-slate-400" />
+                                </div>
+
+                                <div className="space-y-4">
+                                    {/* Header */}
+                                    <div className="pr-8">
+                                        <h4 className="text-base font-bold text-slate-800 line-clamp-1" title={campaign.name}>
+                                            {campaign.name}
+                                        </h4>
+                                        <p className="text-xs text-slate-500 mt-1 font-medium">
+                                            Template: <span className="text-slate-700">{campaign.template_name || '-'}</span>
+                                        </p>
                                     </div>
 
-                                    <div className="space-y-4">
-                                        {/* Header */}
-                                        <div className="pr-8">
-                                            <h4 className="text-base font-bold text-slate-800 line-clamp-1" title={campaign.name}>
-                                                {campaign.name}
-                                            </h4>
-                                            <p className="text-xs text-slate-500 mt-1 font-medium">
-                                                Template: <span className="text-slate-700">{campaign.template_name || '-'}</span>
-                                            </p>
+                                    {/* Status */}
+                                    <div>
+                                        {getStatusBadge(campaign.status)}
+                                    </div>
+
+                                    {/* Stats Grid */}
+                                    <div className="grid grid-cols-3 gap-2 py-4 border-t border-b border-slate-50">
+                                        <div className="text-center">
+                                            <p className="text-xs text-slate-400 uppercase font-semibold">Sent</p>
+                                            <p className="text-sm font-bold text-slate-700">{campaign.real_sent_count || 0}</p>
                                         </div>
-
-                                        {/* Status */}
-                                        <div>
-                                            {getStatusBadge(campaign.status)}
+                                        <div className="text-center border-l border-slate-100">
+                                            <p className="text-xs text-green-500 uppercase font-semibold">Delivered</p>
+                                            <p className="text-sm font-bold text-green-700">{campaign.real_delivered_count || 0}</p>
                                         </div>
-
-                                        {/* Stats Grid */}
-                                        <div className="grid grid-cols-3 gap-2 py-4 border-t border-b border-slate-50">
-                                            <div className="text-center">
-                                                <p className="text-xs text-slate-400 uppercase font-semibold">Sent</p>
-                                                <p className="text-sm font-bold text-slate-700">{campaign.real_sent_count || 0}</p>
-                                            </div>
-                                            <div className="text-center border-l border-slate-100">
-                                                <p className="text-xs text-green-500 uppercase font-semibold">Delivered</p>
-                                                <p className="text-sm font-bold text-green-700">{campaign.real_delivered_count || 0}</p>
-                                            </div>
-                                            <div className="text-center border-l border-slate-100">
-                                                <p className="text-xs text-red-500 uppercase font-semibold">Failed</p>
-                                                <p className="text-sm font-bold text-red-700">{campaign.real_failed_count || 0}</p>
-                                            </div>
+                                        <div className="text-center border-l border-slate-100">
+                                            <p className="text-xs text-red-500 uppercase font-semibold">Failed</p>
+                                            <p className="text-sm font-bold text-red-700">{campaign.real_failed_count || 0}</p>
                                         </div>
+                                    </div>
 
-                                        {/* Footer */}
-                                        <div className="flex items-center justify-between pt-1">
-                                            <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
-                                                <Calendar className="w-3.5 h-3.5" />
-                                                {new Date(campaign.created_at).toLocaleDateString()}
-                                            </span>
-                                            
-                                            {/* Actions Menu */}
-                                            <div className="relative" onClick={e => e.stopPropagation()}>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActiveMenu(activeMenu === campaign.id ? null : campaign.id);
-                                                    }}
-                                                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition"
-                                                >
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </button>
+                                    {/* Footer */}
+                                    <div className="flex items-center justify-between pt-1">
+                                        <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                            {new Date(campaign.created_at).toLocaleDateString()}
+                                        </span>
 
-                                                {activeMenu === campaign.id && (
-                                                    <div className="absolute right-0 bottom-full mb-2 w-40 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-20 animate-in fade-in zoom-in-95">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                navigate(`/dashboard/campaigns/${campaign.id}`);
-                                                                setActiveMenu(null);
-                                                            }}
-                                                            className="w-full px-4 py-2 text-xs font-medium flex items-center gap-2 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
-                                                        >
-                                                            <BarChart className="w-3.5 h-3.5" />
-                                                            View Report
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => handleDelete(e, campaign.id)}
-                                                            className="w-full px-4 py-2 text-xs font-medium flex items-center gap-2 text-red-600 hover:bg-red-50 transition-colors"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                        {/* Actions Menu */}
+                                        <div className="relative" onClick={e => e.stopPropagation()}>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveMenu(activeMenu === campaign.id ? null : campaign.id);
+                                                }}
+                                                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition"
+                                            >
+                                                <MoreHorizontal className="w-4 h-4" />
+                                            </button>
+
+                                            {activeMenu === campaign.id && (
+                                                <div className="absolute right-0 bottom-full mb-2 w-40 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-20 animate-in fade-in zoom-in-95">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/dashboard/campaigns/${campaign.id}`);
+                                                            setActiveMenu(null);
+                                                        }}
+                                                        className="w-full px-4 py-2 text-xs font-medium flex items-center gap-2 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                                                    >
+                                                        <BarChart className="w-3.5 h-3.5" />
+                                                        View Report
+                                                    </button>
+                                                    {/* <button
+                                                        onClick={(e) => handleDelete(e, campaign.id)}
+                                                        className="w-full px-4 py-2 text-xs font-medium flex items-center gap-2 text-red-600 hover:bg-red-50 transition-colors"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                        Delete
+                                                    </button> */}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
-                            )
+                            </div>
+                        )
                         )
                     )}
                 </div>
@@ -416,13 +416,13 @@ const CampaignList = () => {
                                                 >
                                                     View
                                                 </button>
-                                                <button
-                                                     onClick={(e) => handleDelete(e, campaign.id)}
-                                                     className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                                                     title="Delete Campaign"
+                                                {/* <button
+                                                    onClick={(e) => handleDelete(e, campaign.id)}
+                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                                                    title="Delete Campaign"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                </button> */}
                                             </div>
                                         </td>
                                     </tr>
