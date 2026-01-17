@@ -407,81 +407,11 @@ const CreateCampaign = () => {
       </div>
 
       {/* Recent Campaigns Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Recent Campaigns</h3>
-        <RecentCampaignsList />
-      </div>
+      
     </div>
   );
 }
 
-const RecentCampaignsList = () => {
-    const [campaigns, setCampaigns] = useState([]);
-    const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchCampaigns = async () => {
-            try {
-                const res = await fetch('http://localhost:5000/api/campaigns');
-                if(res.ok) {
-                    const data = await res.json();
-                    setCampaigns(data);
-                }
-            } catch(e) { console.error(e); }
-        };
-        fetchCampaigns();
-    }, []);
-
-    if (campaigns.length === 0) return <p className="text-sm text-slate-500">No campaigns found.</p>;
-
-    return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-slate-600">
-                <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                    <tr>
-                        <th className="px-4 py-3">Campaign Name</th>
-                        <th className="px-4 py-3">Template</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Total</th>
-                        <th className="px-4 py-3">Sent</th>
-                        <th className="px-4 py-3">Failed</th>
-                        <th className="px-4 py-3">Date</th>
-                        <th className="px-4 py-3">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {campaigns.map(c => (
-                        <tr key={c.id} className="bg-white border-b hover:bg-slate-50 transition-colors group">
-                            <td className="px-4 py-3 font-medium text-slate-900">{c.name}</td>
-                            <td className="px-4 py-3">{c.template_name || '-'}</td>
-                            <td className="px-4 py-3">
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                    c.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                                    c.status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                                }`}>
-                                    {c.status}
-                                </span>
-                            </td>
-                            <td className="px-4 py-3">{c.real_sent_count || 0}</td>
-                            <td className="px-4 py-3 text-green-600 font-semibold">{c.real_delivered_count || 0}</td>
-                            <td className="px-4 py-3 text-red-600">{c.real_failed_count || 0}</td>
-                            <td className="px-4 py-3 text-slate-400 text-xs">
-                                {new Date(c.created_at).toLocaleDateString()}
-                            </td>
-                            <td className="px-4 py-3">
-                                <button 
-                                    onClick={() => navigate(`/dashboard/campaigns/${c.id}`)}
-                                    className="text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    View Report
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-};
 
 export default CreateCampaign;

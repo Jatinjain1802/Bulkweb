@@ -113,7 +113,8 @@ const Sidebar = () => {
       icon: Megaphone,
       module: 'campaign',
       submenu: [
-        { path: '/dashboard/create-campaign', label: 'Campaign Management', module: 'campaign' },
+        { path: '/dashboard/create-campaign', label: 'Create Campaign', module: 'campaign' },
+        { path: '/dashboard/campaign-list', label: 'Campaign List', module: 'campaign' },
       ],
     },
 
