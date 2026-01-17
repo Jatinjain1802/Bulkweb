@@ -23,15 +23,15 @@ const Sidebar = () => {
         const user = JSON.parse(userStr);
         const name = user.name || user.email?.split('@')[0] || 'User';
         const role = user.role || userData.role || 'User';
-        
+
         let initials = 'U';
         const nameParts = name.trim().split(' ');
         if (nameParts.length === 1) {
-            initials = nameParts[0].substring(0, 2).toUpperCase();
+          initials = nameParts[0].substring(0, 2).toUpperCase();
         } else if (nameParts.length > 1) {
-            initials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+          initials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
         }
-        
+
         setUserProfile({ name, role, initials });
       } catch (e) {
         console.error("Error parsing user data in Sidebar", e);
