@@ -8,6 +8,7 @@ import CreateCampaign from './pages/CreateCampaign/CreateCampaign';
 import CampaignDetails from './pages/CreateCampaign/CampaignDetails';
 import Chat from './pages/Chat/Chat';
 import TemplateList from './pages/CreateTemplate/TemplateList';
+import CampaignList from './pages/CreateCampaign/CampaignList';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="create-template" element={<CreateTemplate />} />
           <Route path="template-list" element={<TemplateList />} />
           <Route path="create-campaign" element={<CreateCampaign />} />
+          <Route path="campaign-list" element={<CampaignList />} />
           <Route path="campaigns/:id" element={<CampaignDetails />} />
           <Route path="chat" element={<Chat />} />
         </Route>
