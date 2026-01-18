@@ -106,7 +106,8 @@ export const createCampaign = async (req, res) => {
         res.status(201).json({ message: "Campaign scheduled successfully", campaignId });
     } else {
         // Run immediately
-        processCampaign(campaignId);
+        const io = req.app.get('io');
+        processCampaign(campaignId, io);
         res.status(201).json({ message: "Campaign launched successfully", campaignId });
     }
 

@@ -5,7 +5,7 @@ import { WhatsappMessageModel } from '../models/whatsappMessageModel.js';
 import { FailedNumber } from '../models/failednumberModel.js';
 import { sendWhatsappMessage } from './whatsappService.js';
 
-export const processCampaign = async (campaignId) => {
+export const processCampaign = async (campaignId, io) => {
     try {
         const campaign = await CampaignModel.findById(campaignId);
         if (!campaign) {
@@ -30,6 +30,14 @@ export const processCampaign = async (campaignId) => {
             console.log(`No pending contacts for campaign ${campaignId}`);
             // Mark as completed if it was stuck
             await CampaignModel.updateStatus(campaignId, 'completed');
+            if(io) {
+                io.emit('campaign_completed', {
+                     id: campaignId,
+                     name: campaign.name,
+                     status: 'completed',
+                     msg: `Campaign "${campaign.name}" completed!`
+                });
+            }
             return;
         }
 
@@ -231,6 +239,16 @@ export const processCampaign = async (campaignId) => {
         
         const finalStatus = failCount === 0 ? 'completed' : (successCount > 0 ? 'partial' : 'failed');
         await CampaignModel.updateStatus(campaignId, finalStatus);
+        
+        if (io) {
+             io.emit('campaign_completed', {
+                 id: campaignId,
+                 name: campaign.name,
+                 status: finalStatus,
+                 msg: `Campaign "${campaign.name}" finished: ${finalStatus}`,
+                 stats: { sent: successCount, failed: failCount }
+             });
+        }
 
     } catch (error) {
         console.error("Error processing campaign:", error);

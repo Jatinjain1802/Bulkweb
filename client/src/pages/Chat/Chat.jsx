@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
 import RightPanel from "./RightPanel";
 import ConfirmationModal from "../../components/ConfirmationModal";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
@@ -146,7 +146,7 @@ const Chat = () => {
 
   return (
     <div className="flex h-[calc(100vh-20px)] relative overflow-hidden font-sans"> 
-      <Toaster position="top-right" />
+
       <ConfirmationModal 
          isOpen={isDeleteModalOpen}
          onClose={() => setIsDeleteModalOpen(false)}

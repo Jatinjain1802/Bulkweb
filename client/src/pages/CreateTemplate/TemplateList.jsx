@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, MoreHorizontal, RefreshCcw, CheckCircle, XCircle, Trash2, Eye, MessageCircle, LayoutGrid, LayoutList, ChevronDown, Calendar } from 'lucide-react';
 import DatePicker from '../../components/DatePicker';
 import deleteImage from '../../assets/img/delete.svg';
-import { Toaster } from "react-hot-toast";
+
 import { showSuccessToast, showErrorToast } from "../../utils/customToast";
 
 const TemplateList = ({ templates: propTemplates, loading: propLoading, onRefresh: propOnRefresh }) => {
@@ -221,7 +221,7 @@ const TemplateList = ({ templates: propTemplates, loading: propLoading, onRefres
     };
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <Toaster position="top-right" />
+
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">

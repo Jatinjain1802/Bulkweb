@@ -1,4 +1,6 @@
 import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 
@@ -9,6 +11,25 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+
+
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
 
 import authRoutes from './routes/authRoutes.js';
 import templateRoutes from './routes/templateRoutes.js';
@@ -35,8 +56,19 @@ app.use('/webhook', webhookRoutes);
 
 const PORT = process.env.PORT || 5000;
 import startScheduler from './utils/scheduler.js';
-startScheduler();
+startScheduler(io);
 
-app.listen(PORT, () =>
+
+app.post('/api/debug/socket-test', (req, res) => {
+  const io = req.app.get('io');
+  io.emit('new_message', {
+    from: 'System Test',
+    content: 'This is a test notification to verify real-time updates!',
+    timestamp: Date.now() / 1000
+  });
+  res.json({ success: true, message: 'Test event emitted' });
+});
+
+httpServer.listen(PORT, () =>
   console.log(`Server running on port ${PORT}`)
 );

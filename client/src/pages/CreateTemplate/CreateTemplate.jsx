@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Select from 'react-select';
 import { Plus, FilePlus, CheckCircle, Clock, XCircle, MoreHorizontal, Search, MessageCircle } from 'lucide-react';
 import TemplateList from './TemplateList';
-import { Toaster } from "react-hot-toast";
+
 import { showSuccessToast, showErrorToast } from "../../utils/customToast";
 import VaataLogo from '../../assets/img/Vaata-logo.png';
 
@@ -292,7 +292,7 @@ const CreateTemplate = () => {
 
   return (
     <div className="space-y-8 animate-fade-in-up">
-      <Toaster position="top-right" />
+
       {/* ===== META APPROVAL RULES : FULL WIDTH ===== */}
       <div
         className="rounded-lg p-6 border border-gray-300"

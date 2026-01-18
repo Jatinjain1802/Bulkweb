@@ -3,7 +3,11 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
+import useSocketNotifications from '../../hooks/useSocketNotifications.jsx';
+
 const DashboardLayout = () => {
+  useSocketNotifications();
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
       <Sidebar />

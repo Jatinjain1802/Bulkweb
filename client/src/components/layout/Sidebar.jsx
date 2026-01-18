@@ -155,6 +155,77 @@ const Sidebar = () => {
 
       {/* Divider */}
       <div className="mx-4 my-3 border-t border-white-500/40"></div>
+         {/* Chat Management Section */}
+      <div>
+        <p className="px-5 py-2 text-xs font-medium text-gray-300  tracking-wide">
+          Chat Management
+        </p>
+        <div className="px-3">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            if (item.submenu && item.label === 'Chat Management' && hasAccess(item.module)) {
+              const isHighlighted = activeItem === item.label;
+              const isOpen = openMenu === item.label;
+
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => {
+                      setActiveItem(item.label);
+                      setOpenMenu(openMenu === item.label ? '' : item.label);
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-md transition-all duration-200 ${isHighlighted
+                      ? 'text-white shadow-md'
+                      : 'text-gray-200 hover:bg-white/10'
+                      }`}
+                    style={isHighlighted ? { backgroundColor: '#e87722' } : {}}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+                        }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3 overflow-hidden"
+                      >
+                        {item.submenu.map(
+                          (sub) =>
+                            hasAccess(sub.module) && (
+                              <NavLink
+                                key={sub.path}
+                                to={sub.path}
+                                className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
+                              >
+                                {sub.label}
+                              </NavLink>
+                            )
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="mx-4 my-3 border-t border-white-500/40"></div>
+
       {/* Campaign Management Section */}
       <div>
         <p className="px-5 py-2 text-xs font-medium text-gray-300  tracking-wide">
@@ -296,76 +367,7 @@ const Sidebar = () => {
 
       {/* Divider */}
       <div className="mx-4 my-3 border-t border-white-500/40"></div>
-
-
-      {/* Chat Management Section */}
-      <div>
-        <p className="px-5 py-2 text-xs font-medium text-gray-300  tracking-wide">
-          Chat Management
-        </p>
-        <div className="px-3">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            if (item.submenu && item.label === 'Chat Management' && hasAccess(item.module)) {
-              const isHighlighted = activeItem === item.label;
-              const isOpen = openMenu === item.label;
-
-              return (
-                <div key={item.label}>
-                  <button
-                    onClick={() => {
-                      setActiveItem(item.label);
-                      setOpenMenu(openMenu === item.label ? '' : item.label);
-                    }}
-                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-md transition-all duration-200 ${isHighlighted
-                      ? 'text-white shadow-md'
-                      : 'text-gray-200 hover:bg-white/10'
-                      }`}
-                    style={isHighlighted ? { backgroundColor: '#e87722' } : {}}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5" />
-                      <span className="font-medium text-sm">{item.label}</span>
-                    </div>
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
-                        }`}
-                    />
-                  </button>
-
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                        className="mt-2 ml-6 space-y-1 border-l border-gray-500/50 pl-3 overflow-hidden"
-                      >
-                        {item.submenu.map(
-                          (sub) =>
-                            hasAccess(sub.module) && (
-                              <NavLink
-                                key={sub.path}
-                                to={sub.path}
-                                className="block py-2 text-sm transition-all duration-200 text-gray-300 hover:text-white"
-                              >
-                                {sub.label}
-                              </NavLink>
-                            )
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                </div>
-              );
-            }
-            return null;
-          })}
-        </div>
-      </div>
-
+      
       {/* Profile + Logout */}
       <div className="p-4 mt-auto border-t border-gray-500/40">
         <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>

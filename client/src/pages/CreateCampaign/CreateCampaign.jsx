@@ -3,6 +3,7 @@ import Select from 'react-select';
 import { Megaphone, User, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react'; // Added icons
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
+import TemplatePreview from '../../components/TemplatePreview';
 
 const CreateCampaign = () => {
     const [templates, setTemplates] = useState([]);
@@ -211,6 +212,9 @@ const CreateCampaign = () => {
                                         onChange={handleTemplateChange}
                                         placeholder="Select a template..."
                                         isSearchable={true}
+                                        styles={{
+                                            menu: (base) => ({ ...base, zIndex: 9999 })
+                                        }}
                                     />
                                 </div>
 
@@ -364,10 +368,15 @@ const CreateCampaign = () => {
                     </div>
 
                     {/* Helper Sidebar */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit">
+                    <div className="space-y-6">
+                        {selectedTemplate && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                                <TemplatePreview template={selectedTemplate.original} />
+                            </div>
+                        )}
 
-
-                        <h3 className="text-md font-bold text-slate-700 mb-4">Summary</h3>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit">
+                            <h3 className="text-md font-bold text-slate-700 mb-4">Summary</h3>
                         <div className="space-y-3 mb-6">
                             <div className="flex justify-between text-sm">
                                 <span className="text-slate-500">Selected Template</span>
@@ -394,7 +403,7 @@ const CreateCampaign = () => {
                         </div>
 
                         <div className="bg-indigo-50 text-indigo-700 p-4 rounded-xl text-xs leading-relaxed flex gap-2">
-                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                            <AlertCircle className="w-5 h-5 shrink-0" />
                             <div>
                                 <strong>Tips:</strong>
                                 <ul className="list-disc list-inside mt-1 space-y-1">
@@ -404,6 +413,7 @@ const CreateCampaign = () => {
                                 </ul>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </div>
 

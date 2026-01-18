@@ -1,5 +1,6 @@
 import { WhatsappMessageModel } from '../models/whatsappMessageModel.js';
 import { FailedNumber } from '../models/failednumberModel.js';
+import { TemplateModel } from '../models/templateModel.js';
 
 export const verifyWebhook = (req, res) => {
   const mode = req.query['hub.mode'];
@@ -35,6 +36,8 @@ export const handleWebhook = async (req, res) => {
         const statuses = value?.statuses;
         const messages = value?.messages;
 
+        const io = req.app.get('io');
+
         if (statuses && Array.isArray(statuses)) {
             for (const statusObj of statuses) {
                 const wamid = statusObj.id;
@@ -42,6 +45,15 @@ export const handleWebhook = async (req, res) => {
                 const timestamp = statusObj.timestamp; 
                 
                 await WhatsappMessageModel.updateStatus(wamid, status, timestamp);
+
+                if (io) {
+                    io.emit('status_update', { 
+                        wamid, 
+                        status, 
+                        timestamp,
+                        recipient_id: statusObj.recipient_id 
+                    });
+                }
 
                 if (status === 'failed') {
                     const recipientId = statusObj.recipient_id;
@@ -82,15 +94,80 @@ export const handleWebhook = async (req, res) => {
                     timestamp
                   });
                   console.log(`Saved incoming message from ${from}`);
+                  
+                  if (io) {
+                      io.emit('new_message', { 
+                          wamid, 
+                          from, 
+                          content, 
+                          type, 
+                          timestamp 
+                      });
+                  }
+
                 } catch (err) {
                   // Ignore duplicate entry errors (common with retries)
                   if (err.code !== 'ER_DUP_ENTRY') {
                     console.error("Error saving incoming message:", err);
                   }
                 }
+                }
+        }
+
+        // Handle Template Status Updates
+        if (changes && changes.field === 'message_template_status_update') {
+            const event = changes.value;
+            const metaId = event.message_template_id;
+            const status = event.event; // APPROVED, REJECTED, PENDING, PAUSED, DISABLED, FLAGGED
+            const reason = event.reason;
+            const name = event.message_template_name;
+
+            console.log(`Template webhook: ${name} (${metaId}) -> ${status}`);
+
+            // Map status
+            const mapStatus = (s) => {
+                switch (s) {
+                    case 'APPROVED': return 'approved';
+                    case 'REJECTED': return 'rejected';
+                    case 'PENDING': return 'pending';
+                    case 'PAUSED': return 'paused';
+                    case 'DISABLED': return 'disabled';
+                    case 'FLAGGED': return 'flagged';
+                    default: return s.toLowerCase();
+                }
+            };
+
+            const distinctStatus = mapStatus(status);
+
+            // Update DB
+            let template = await TemplateModel.findByMetaId(metaId);
+            if (!template && name) {
+                // Fallback to name if not found by ID (e.g. if ID wasn't saved yet)
+                template = await TemplateModel.findByName(name);
+            }
+
+            if (template) {
+                await TemplateModel.updateSyncDetails(template.id, {
+                    status: distinctStatus,
+                    meta_id: metaId,
+                    rejection_reason: reason
+                });
+
+                if (io) {
+                    io.emit('template_status_update', {
+                        id: template.id,
+                        name: template.name,
+                        status: distinctStatus,
+                        reason: reason,
+                        timestamp: Date.now()
+                    });
+                }
+            } else {
+                console.log("Template not found locally for status update:", name);
             }
         }
-    }
+        }
+
     
     res.sendStatus(200);
   } catch (error) {

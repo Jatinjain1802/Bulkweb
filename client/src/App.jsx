@@ -10,10 +10,15 @@ import Chat from './pages/Chat/Chat';
 import TemplateList from './pages/CreateTemplate/TemplateList';
 import CampaignList from './pages/CreateCampaign/CampaignList';
 
+import { NotificationProvider } from './context/NotificationContext';
+import { Toaster } from 'react-hot-toast';
+
 function App() {
   return (
     <Router>
-      <Routes>
+      <NotificationProvider>
+        <Toaster position="top-right" />
+        <Routes>
         <Route path="/login" element={<Login />} />
 
         {/* Dashboard Routes */}
@@ -30,6 +35,7 @@ function App() {
 
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
+      </NotificationProvider>
     </Router>
   );
 }

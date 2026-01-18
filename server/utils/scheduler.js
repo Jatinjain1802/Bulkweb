@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import { CampaignModel } from '../models/campaignModel.js';
 import { processCampaign } from './campaignService.js';
 
-const startScheduler = () => {
+const startScheduler = (io) => {
     // Run every minute
     cron.schedule('* * * * *', async () => {
         console.log('Checking for scheduled campaigns...');
@@ -13,11 +13,7 @@ const startScheduler = () => {
                 console.log(`Found ${dueCampaigns.length} due campaigns.`);
                 for (const campaign of dueCampaigns) {
                     console.log(`Starting campaign ${campaign.id} (${campaign.name})...`);
-                    processCampaign(campaign.id); // Run in background, don't await loop? 
-                    // Better to await to avoid overwhelming server if multiple heavy campaigns trigger?
-                    // For now, let's treat them independently but maybe limit concurrency later.
-                    // If we await, one stuck campaign blocks others.
-                    // Safe to just fire processCampaign.
+                    processCampaign(campaign.id, io); 
                 }
             }
         } catch (error) {

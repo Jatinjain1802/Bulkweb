@@ -58,6 +58,12 @@ export const TemplateModel = {
     return rows[0];
   },
 
+  findByMetaId: async (metaId) => {
+    const query = 'SELECT * FROM templates WHERE meta_id = ?';
+    const [rows] = await db.execute(query, [metaId]);
+    return rows[0];
+  },
+
   updateStatus: async (id, status, meta_id = null, rejection_reason = null) => {
     let query = 'UPDATE templates SET status = ?';
     let params = [status];
